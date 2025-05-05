@@ -43,7 +43,7 @@
       header: true,
       complete: function(results) {
         results.data.forEach(row => {
-          gradeData[row.stream_id] = parseFloat(row.grade);
+          gradeData[row.fid] = parseFloat(row.grade);
         });
         loadGeoJSON();
       }
@@ -55,7 +55,7 @@
         .then(data => {
           L.geoJSON(data, {
             style: function(feature) {
-              const id = feature.properties.reach_id;
+              const id = feature.properties.fid;
               const grade = gradeData[id];
               return {
                 color: getColor(grade),
@@ -63,7 +63,7 @@
               };
             },
             onEachFeature: function (feature, layer) {
-              const id = feature.properties.reach_id;
+              const id = feature.properties.fid;
               const grade = gradeData[id];
               layer.bindPopup(`Reach ID: ${id}<br>Grade: ${grade ?? 'N/A'}`);
             }
