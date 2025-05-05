@@ -1,0 +1,75 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Stream Grade Map</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+  <style>
+    #map {
+      height: 100vh;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+
+  <script>
+    const map = L.map('map').setView([39, -98], 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    const gradeCSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRPAW8QhbBR4E1EWH-Tq5e472ylT5i1T6nB5Wt2KMEvuRzsmqA_ZImCQheilmpB4sK9NP-FHm1NLMs1/pub?gid=0&single=true&output=csv";
+    const geojsonURL = "LBD_ReachCharacterization.geojson";
+
+    let gradeData = {};
+
+    function getColor(grade) {
+      return grade > 4 ? '#1a9850' :
+             grade > 3 ? '#91cf60' :
+             grade > 2 ? '#d9ef8b' :
+             grade > 1 ? '#fee08b' :
+                         '#d73027';
+    }
+
+    Papa.parse(gradeCSV, {
+      download: true,
+      header: true,
+      complete: function(results) {
+        results.data.forEach(row => {
+          gradeData[row.stream_id] = parseFloat(row.grade);
+        });
+        loadGeoJSON();
+      }
+    });
+
+    function loadGeoJSON() {
+      fetch(geojsonURL)
+        .then(res => res.json())
+        .then(data => {
+          L.geoJSON(data, {
+            style: function(feature) {
+              const id = feature.properties.reach_id;
+              const grade = gradeData[id];
+              return {
+                color: getColor(grade),
+                weight: 3
+              };
+            },
+            onEachFeature: function (feature, layer) {
+              const id = feature.properties.reach_id;
+              const grade = gradeData[id];
+              layer.bindPopup(`Reach ID: ${id}<br>Grade: ${grade ?? 'N/A'}`);
+            }
+          }).addTo(map);
+        });
+    }
+  </script>
+</body>
+</html>
