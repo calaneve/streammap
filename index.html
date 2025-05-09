@@ -39,23 +39,21 @@
       clear: both;
       margin-bottom: 4px;
     }
-    #searchBox {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  z-index: 1000;
-  padding: 6px;
-  font-size: 14px;
-  width: 200px;
-  background: white;
-  border: 1px solid #ccc;
-}
   </style>
 </head>
 <body>
-<input type="text" id="searchBox" placeholder="Search Reach ID...">
-<div id="map"></div>
+  <input type="text" id="searchBox" placeholder="Search Reach ID..." style="position:absolute; top:20px; left:20px; z-index:1000; padding:6px; font-size:14px; width:200px;">
+  
+  <input type="text" id="searchBox" placeholder="Search Reach ID...">
+  <div id="gradeFilter" style="position:absolute; top:60px; left:20px; z-index:1000; background:white; padding:10px; border:1px solid #ccc;">
+    <label><input type="checkbox" value="0" checked> 0</label><br>
+    <label><input type="checkbox" value="1" checked> 1</label><br>
+    <label><input type="checkbox" value="2" checked> 2</label><br>
+    <label><input type="checkbox" value="3" checked> 3</label><br>
+    <label><input type="checkbox" value="4" checked> 4</label><br>
+  </div>
   <div id="map"></div>
+  
 
   <div class="legend" id="legend">
     <h4>Reach Grades</h4>
@@ -120,6 +118,56 @@
               const bounds = geoLayer.getBounds();
               if (bounds.isValid()) {
                 map.fitBounds(bounds, { padding: [20, 20] });
+
+            // Search functionality
+            document.getElementById("searchBox").addEventListener("input", function(e) {
+              const query = e.target.value.toLowerCase();
+              geoLayer.eachLayer(layer => {
+                const reachId = layer.feature.properties.reach_id.toLowerCase();
+                if (reachId.includes(query)) {
+                  layer.setStyle({ weight: 5, color: 'blue' });
+                  layer.openPopup();
+                } else {
+                  const grade = reachGrades[layer.feature.properties.reach_id];
+                  layer.setStyle({ color: gradeColors[grade] || 'gray', weight: 3 });
+                }
+              });
+            });
+
+
+              // Grade filter logic
+              document.querySelectorAll('#gradeFilter input[type="checkbox"]').forEach(cb => {
+                cb.addEventListener('change', () => {
+                  const activeGrades = Array.from(document.querySelectorAll('#gradeFilter input:checked')).map(cb => parseInt(cb.value));
+                  geoLayer.eachLayer(layer => {
+                    const reachId = layer.feature.properties.reach_id;
+                    const grade = reachGrades[reachId];
+                    if (activeGrades.includes(grade)) {
+                      layer.setStyle({ color: gradeColors[grade] || 'gray', weight: 3 });
+                      layer.addTo(map);
+                    } else {
+                      map.removeLayer(layer);
+                    }
+                  });
+                });
+              });
+
+
+            // Search functionality
+            document.getElementById("searchBox").addEventListener("input", function(e) {
+              const query = e.target.value.toLowerCase();
+              geoLayer.eachLayer(layer => {
+                const reachId = layer.feature.properties.reach_id.toLowerCase();
+                if (reachId.includes(query)) {
+                  layer.setStyle({ weight: 5, color: 'blue' });
+                  layer.openPopup();
+                } else {
+                  const grade = reachGrades[layer.feature.properties.reach_id];
+                  layer.setStyle({ color: gradeColors[grade] || 'gray', weight: 3 });
+                }
+              });
+            });
+
               }
             });
           });
