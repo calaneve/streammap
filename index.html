@@ -89,7 +89,6 @@
 
             map.whenReady(() => {
               const bounds = geoLayer.getBounds();
-              console.log("Map bounds:", bounds);
               if (bounds.isValid()) {
                 map.fitBounds(bounds, { padding: [20, 20] });
               }
