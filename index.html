@@ -88,7 +88,7 @@
     fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQym-260xKW7ClK328zlGweWjDVlutHEJaV4GJgY3V_R9Kjf8tmlfzL8z27A025lqPqHUim0EG_RJE6/pub?gid=0&single=true&output=csv")
       .then(response => response.text())
       .then(csvText => {
-        const lines = csvText.trim().split("\\n").slice(1);
+        const lines = csvText.trim().split("\n").slice(1);
         for (const line of lines) {
           const [fid, reach_id, gradeStr] = line.split(',');
           const grade = parseInt(gradeStr);
