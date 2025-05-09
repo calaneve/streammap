@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Reach Map with Grades</title>
+  <title>Reach Map with Grades & Search</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
@@ -39,9 +39,20 @@
       clear: both;
       margin-bottom: 4px;
     }
+
+    #searchBox {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 1000;
+      padding: 6px;
+      font-size: 14px;
+      width: 200px;
+    }
   </style>
 </head>
 <body>
+  <input type="text" id="searchBox" placeholder="Search Reach ID...">
   <div id="map"></div>
 
   <div class="legend" id="legend">
@@ -72,11 +83,10 @@
 
     const reachGrades = {};
 
-    // Load grade data from Google Sheets
     fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQym-260xKW7ClK328zlGweWjDVlutHEJaV4GJgY3V_R9Kjf8tmlfzL8z27A025lqPqHUim0EG_RJE6/pub?gid=0&single=true&output=csv")
       .then(response => response.text())
       .then(csvText => {
-        const lines = csvText.trim().split("\n").slice(1);
+        const lines = csvText.trim().split("\\n").slice(1);
         for (const line of lines) {
           const [fid, reach_id, gradeStr] = line.split(',');
           const grade = parseInt(gradeStr);
@@ -108,6 +118,21 @@
               if (bounds.isValid()) {
                 map.fitBounds(bounds, { padding: [20, 20] });
               }
+
+              // Search functionality
+              document.getElementById("searchBox").addEventListener("input", function(e) {
+                const query = e.target.value.toLowerCase();
+                geoLayer.eachLayer(layer => {
+                  const reachId = layer.feature.properties.reach_id.toLowerCase();
+                  if (reachId.includes(query)) {
+                    layer.setStyle({ weight: 5, color: 'blue' });
+                    layer.openPopup();
+                  } else {
+                    const grade = reachGrades[layer.feature.properties.reach_id];
+                    layer.setStyle({ color: gradeColors[grade] || 'gray', weight: 3 });
+                  }
+                });
+              });
             });
           });
       });
