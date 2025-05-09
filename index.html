@@ -2,40 +2,55 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Interactive Grade Map</title>
+  <title>Simplified Reach Map</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     #map { height: 100vh; }
+
     .legend {
       position: absolute;
-      bottom: 30px;
-      left: 30px;
-      padding: 10px;
+      bottom: 20px;
+      left: 20px;
       background: white;
+      padding: 10px;
       border: 1px solid #ccc;
       font-family: Arial, sans-serif;
-      line-height: 18px;
-      color: #333;
+      font-size: 14px;
+      z-index: 1000;
+      box-shadow: 0 0 6px rgba(0,0,0,0.2);
     }
+
+    .legend h4 {
+      margin: 0 0 6px;
+      font-size: 14px;
+    }
+
     .legend i {
-      width: 18px;
-      height: 18px;
+      width: 14px;
+      height: 14px;
       float: left;
       margin-right: 8px;
-      opacity: 0.7;
+      margin-top: 2px;
+      opacity: 0.8;
+    }
+
+    .legend div {
+      clear: both;
+      margin-bottom: 4px;
     }
   </style>
 </head>
 <body>
   <div id="map"></div>
+
   <div class="legend" id="legend">
-    <strong>Reach Grades</strong><br>
-    <i style="background:red"></i> 0 – Non-Functional<br>
-    <i style="background:orange"></i> 1 – Impaired<br>
-    <i style="background:yellow"></i> 2 – Functional<br>
-    <i style="background:lightgreen"></i> 3 – Highly Functional<br>
-    <i style="background:green"></i> 4 – Optimally Functional<br>
+    <h4>Reach Grades</h4>
+    <div><i style="background:red"></i> 0 – Non-Functional</div>
+    <div><i style="background:orange"></i> 1 – Impaired</div>
+    <div><i style="background:yellow"></i> 2 – Functional</div>
+    <div><i style="background:lightgreen"></i> 3 – Highly Functional</div>
+    <div><i style="background:green"></i> 4 – Optimally Functional</div>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -47,53 +62,25 @@
       attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    const gradeColors = {
-      0: 'red',
-      1: 'orange',
-      2: 'yellow',
-      3: 'lightgreen',
-      4: 'green'
-    };
-
-    const reachGrades = {};
-
-    fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQym-260xKW7ClK328zlGweWjDVlutHEJaV4GJgY3V_R9Kjf8tmlfzL8z27A025lqPqHUim0EG_RJE6/pub?gid=0&single=true&output=csv")
-      .then(response => response.text())
-      .then(csvText => {
-        const lines = csvText.trim().split("\n").slice(1);
-        for (const line of lines) {
-          const [fid, reach_id, gradeStr] = line.split(',');
-          const grade = parseInt(gradeStr);
-          if (!isNaN(grade)) {
-            reachGrades[reach_id] = grade;
+    fetch('https://calaneve.github.io/streammap/LBD_ReachCharacterization_GCSWGS84.geojson')
+      .then(res => res.json())
+      .then(data => {
+        const geoLayer = L.geoJSON(data, {
+          style: {
+            color: 'gray',
+            weight: 3
+          },
+          onEachFeature: (feature, layer) => {
+            layer.bindPopup(`Reach ID: ${feature.properties.reach_id}`);
           }
-        }
+        }).addTo(map);
 
-        fetch('https://calaneve.github.io/streammap/LBD_ReachCharacterization_GCSWGS84.geojson')
-          .then(res => res.json())
-          .then(geojson => {
-            const geoLayer = L.geoJSON(geojson, {
-              style: feature => {
-                const reachId = feature.properties.reach_id;
-                const grade = reachGrades[reachId];
-                return {
-                  color: gradeColors[grade] || 'gray',
-                  weight: 3
-                };
-              },
-              onEachFeature: (feature, layer) => {
-                const props = feature.properties;
-                layer.bindPopup(`FID: ${props.fid}<br>Reach ID: ${props.reach_id}`);
-              }
-            }).addTo(map);
-
-            map.whenReady(() => {
-              const bounds = geoLayer.getBounds();
-              if (bounds.isValid()) {
-                map.fitBounds(bounds, { padding: [20, 20] });
-              }
-            });
-          });
+        map.whenReady(() => {
+          const bounds = geoLayer.getBounds();
+          if (bounds.isValid()) {
+            map.fitBounds(bounds, { padding: [20, 20] });
+          }
+        });
       });
   </script>
 </body>
