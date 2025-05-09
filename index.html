@@ -69,8 +69,7 @@
           }
         }
 
-        fetch('fetch('https://calaneve.github.io/streammap/LBD_ReachCharacterization_GCSWGS84.geojson')
-LBD_ReachCharacterization_GCSWGS84.geojson')
+        fetch('https://calaneve.github.io/streammap/LBD_ReachCharacterization_GCSWGS84.geojson')
           .then(res => res.json())
           .then(geojson => {
             const geoLayer = L.geoJSON(geojson, {
