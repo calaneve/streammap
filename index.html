@@ -39,9 +39,22 @@
       clear: both;
       margin-bottom: 4px;
     }
+    #searchBox {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 1000;
+  padding: 6px;
+  font-size: 14px;
+  width: 200px;
+  background: white;
+  border: 1px solid #ccc;
+}
   </style>
 </head>
 <body>
+<input type="text" id="searchBox" placeholder="Search Reach ID...">
+<div id="map"></div>
   <div id="map"></div>
 
   <div class="legend" id="legend">
