@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Simplified Reach Map</title>
+  <title>Reach Map with Grades</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
@@ -62,25 +62,54 @@
       attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    fetch('https://calaneve.github.io/streammap/LBD_ReachCharacterization_GCSWGS84.geojson')
-      .then(res => res.json())
-      .then(data => {
-        const geoLayer = L.geoJSON(data, {
-          style: {
-            color: 'gray',
-            weight: 3
-          },
-          onEachFeature: (feature, layer) => {
-            layer.bindPopup(`Reach ID: ${feature.properties.reach_id}`);
-          }
-        }).addTo(map);
+    const gradeColors = {
+      0: 'red',
+      1: 'orange',
+      2: 'yellow',
+      3: 'lightgreen',
+      4: 'green'
+    };
 
-        map.whenReady(() => {
-          const bounds = geoLayer.getBounds();
-          if (bounds.isValid()) {
-            map.fitBounds(bounds, { padding: [20, 20] });
+    const reachGrades = {};
+
+    // Load grade data from Google Sheets
+    fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQym-260xKW7ClK328zlGweWjDVlutHEJaV4GJgY3V_R9Kjf8tmlfzL8z27A025lqPqHUim0EG_RJE6/pub?gid=0&single=true&output=csv")
+      .then(response => response.text())
+      .then(csvText => {
+        const lines = csvText.trim().split("\n").slice(1);
+        for (const line of lines) {
+          const [fid, reach_id, gradeStr] = line.split(',');
+          const grade = parseInt(gradeStr);
+          if (!isNaN(grade)) {
+            reachGrades[reach_id] = grade;
           }
-        });
+        }
+
+        fetch('https://calaneve.github.io/streammap/LBD_ReachCharacterization_GCSWGS84.geojson')
+          .then(res => res.json())
+          .then(geojson => {
+            const geoLayer = L.geoJSON(geojson, {
+              style: feature => {
+                const reachId = feature.properties.reach_id;
+                const grade = reachGrades[reachId];
+                return {
+                  color: gradeColors[grade] || 'gray',
+                  weight: 3
+                };
+              },
+              onEachFeature: (feature, layer) => {
+                const props = feature.properties;
+                layer.bindPopup(`FID: ${props.fid}<br>Reach ID: ${props.reach_id}`);
+              }
+            }).addTo(map);
+
+            map.whenReady(() => {
+              const bounds = geoLayer.getBounds();
+              if (bounds.isValid()) {
+                map.fitBounds(bounds, { padding: [20, 20] });
+              }
+            });
+          });
       });
   </script>
 </body>
