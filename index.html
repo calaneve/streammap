@@ -8,24 +8,28 @@
   <style>
     #map { height: 100vh; }
 
-    #searchBox, #gradeColumn {
+    #searchBox {
       position: absolute;
+      top: 20px;
       left: 20px;
       z-index: 1001;
       padding: 6px;
       font-size: 14px;
+      width: 200px;
       background: white;
       border: 1px solid #ccc;
     }
 
-    #searchBox {
-      top: 20px;
-      width: 200px;
-    }
-
     #gradeColumn {
+      position: absolute;
       top: 60px;
+      left: 20px;
+      z-index: 1001;
+      padding: 6px;
+      font-size: 14px;
       width: 200px;
+      background: white;
+      border: 1px solid #ccc;
     }
 
     #gradeFilter {
@@ -210,10 +214,9 @@
             });
           });
 
-          updateGrades(); // load first column
+          updateGrades();
         });
       });
   </script>
 </body>
 </html>
-
