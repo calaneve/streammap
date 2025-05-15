@@ -1,9 +1,8 @@
-
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Reach Map with Grade Column Dropdown</title>
+  <title>Reach Map with Grade Selector</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
@@ -12,21 +11,27 @@
     #searchBox, #gradeColumn {
       position: absolute;
       left: 20px;
-      z-index: 1000;
+      z-index: 1001;
       padding: 6px;
       font-size: 14px;
       background: white;
       border: 1px solid #ccc;
     }
 
-    #searchBox { top: 20px; width: 200px; }
-    #gradeColumn { top: 60px; }
+    #searchBox {
+      top: 20px;
+      width: 200px;
+    }
+
+    #gradeColumn {
+      top: 60px;
+      width: 200px;
+    }
 
     #gradeFilter {
       position: absolute;
-      top: 50%;
+      top: 110px;
       left: 20px;
-      transform: translateY(-50%);
       z-index: 1001;
       background: white;
       padding: 10px;
@@ -135,11 +140,18 @@
               reachGrades[reach_id] = grade;
             }
           }
+
+          const activeGrades = Array.from(document.querySelectorAll('#gradeFilter input:checked')).map(cb => parseInt(cb.value));
           geoLayer.eachLayer(layer => {
             const reachId = layer.feature.properties.reach_id;
             const grade = reachGrades[reachId];
             if (grade !== undefined) {
               layer.setStyle({ color: gradeColors[grade] || 'gray', weight: 3 });
+              if (activeGrades.includes(grade)) {
+                layer.addTo(map);
+              } else {
+                map.removeLayer(layer);
+              }
             }
           });
         });
@@ -198,9 +210,10 @@
             });
           });
 
-          updateGrades(); // initial load
+          updateGrades(); // load first column
         });
       });
   </script>
 </body>
 </html>
+
