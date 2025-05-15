@@ -88,6 +88,7 @@
     <div><i style="background:yellow"></i> 2 – Functional</div>
     <div><i style="background:lightgreen"></i> 3 – Highly Functional</div>
     <div><i style="background:green"></i> 4 – Optimally Functional</div>
+    <div><i style="background:gray"></i> – No Data</div>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -126,23 +127,22 @@
           for (const line of lines.slice(1)) {
             const cols = line.split(",");
             const reach_id = cols[1];
-            const grade = parseInt(cols[columnIndex]);
-            if (!isNaN(grade)) {
-              reachGrades[reach_id] = grade;
-            }
+            const gradeRaw = cols[columnIndex]?.trim();
+            const grade = gradeRaw === "" ? null : parseInt(gradeRaw);
+            reachGrades[reach_id] = isNaN(grade) ? null : grade;
           }
 
           const activeGrades = Array.from(document.querySelectorAll('#gradeFilter input:checked')).map(cb => parseInt(cb.value));
           geoLayer.eachLayer(layer => {
             const reachId = layer.feature.properties.reach_id;
             const grade = reachGrades[reachId];
-            if (grade !== undefined) {
-              layer.setStyle({ color: gradeColors[grade] || 'gray', weight: 3 });
-              if (activeGrades.includes(grade)) {
-                layer.addTo(map);
-              } else {
-                map.removeLayer(layer);
-              }
+            const color = grade == null ? 'gray' : (gradeColors[grade] || 'gray');
+            layer.setStyle({ color, weight: 3 });
+
+            if (grade == null || activeGrades.includes(grade)) {
+              layer.addTo(map);
+            } else {
+              map.removeLayer(layer);
             }
           });
         });
@@ -155,7 +155,7 @@
           style: feature => {
             const grade = reachGrades[feature.properties.reach_id];
             return {
-              color: gradeColors[grade] || 'gray',
+              color: grade == null ? 'gray' : (gradeColors[grade] || 'gray'),
               weight: 3
             };
           },
@@ -180,7 +180,8 @@
                 layer.openPopup();
               } else {
                 const grade = reachGrades[layer.feature.properties.reach_id];
-                layer.setStyle({ color: gradeColors[grade] || 'gray', weight: 3 });
+                const color = grade == null ? 'gray' : (gradeColors[grade] || 'gray');
+                layer.setStyle({ color, weight: 3 });
               }
             });
           });
@@ -191,8 +192,10 @@
               geoLayer.eachLayer(layer => {
                 const reachId = layer.feature.properties.reach_id;
                 const grade = reachGrades[reachId];
-                if (activeGrades.includes(grade)) {
-                  layer.setStyle({ color: gradeColors[grade] || 'gray', weight: 3 });
+                const color = grade == null ? 'gray' : (gradeColors[grade] || 'gray');
+                layer.setStyle({ color, weight: 3 });
+
+                if (grade == null || activeGrades.includes(grade)) {
                   layer.addTo(map);
                 } else {
                   map.removeLayer(layer);
@@ -201,7 +204,7 @@
             });
           });
 
-          updateGrades(); // initial load
+          updateGrades();
         });
       });
   </script>
