@@ -2,12 +2,15 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Reach Map with Grade Selector</title>
+  <title>Reach Map with Grade 5 (No Data)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Load Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
+    /* Fullscreen map container */
     #map { height: 100vh; }
 
+    /* Top-left UI elements: search and grade dropdown */
     #searchBox, #gradeColumn {
       position: absolute;
       left: 20px;
@@ -22,6 +25,7 @@
     #searchBox { top: 20px; }
     #gradeColumn { top: 60px; }
 
+    /* Grade filter checkboxes */
     #gradeFilter {
       position: absolute;
       top: 110px;
@@ -35,6 +39,7 @@
       box-shadow: 0 0 6px rgba(0,0,0,0.2);
     }
 
+    /* Legend for color-coded grade categories */
     .legend {
       position: absolute;
       bottom: 20px;
@@ -64,23 +69,30 @@
   </style>
 </head>
 <body>
+
+  <!-- UI: Reach ID search box -->
   <input type="text" id="searchBox" placeholder="Search Reach ID...">
 
+  <!-- UI: Dropdown to select which grade column (e.g., Grade vs. Grade3) -->
   <select id="gradeColumn">
     <option value="Grade" selected>Grade</option>
     <option value="Grade3">Grade3</option>
   </select>
 
+  <!-- UI: Grade filter checkboxes including 5 = No Data -->
   <div id="gradeFilter">
     <label><input type="checkbox" value="0" checked> 0</label><br>
     <label><input type="checkbox" value="1" checked> 1</label><br>
     <label><input type="checkbox" value="2" checked> 2</label><br>
     <label><input type="checkbox" value="3" checked> 3</label><br>
     <label><input type="checkbox" value="4" checked> 4</label><br>
+    <label><input type="checkbox" value="5" checked> 5 – No Data</label><br>
   </div>
 
+  <!-- The map container -->
   <div id="map"></div>
 
+  <!-- Color legend -->
   <div class="legend" id="legend">
     <h4>Reach Grades</h4>
     <div><i style="background:red"></i> 0 – Non-Functional</div>
@@ -88,32 +100,38 @@
     <div><i style="background:yellow"></i> 2 – Functional</div>
     <div><i style="background:lightgreen"></i> 3 – Highly Functional</div>
     <div><i style="background:green"></i> 4 – Optimally Functional</div>
-    <div><i style="background:gray"></i> ND – No Data</div>
+    <div><i style="background:gray"></i> 5 – No Data</div>
   </div>
 
+  <!-- Load Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
+    // Initialize the map
     const map = L.map('map').setView([40.0979, -105.8729], 14);
 
+    // Add OpenStreetMap tile layer
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 18,
       attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
+    // Define colors by grade
     const gradeColors = {
       0: 'red',
       1: 'orange',
       2: 'yellow',
       3: 'lightgreen',
-      4: 'green'
-      ND: 'gray'
+      4: 'green',
+      5: 'gray'  // No Data
     };
 
-    let reachGrades = {};
-    let geoLayer;
+    let reachGrades = {}; // Map reach_id -> grade
+    let geoLayer;         // GeoJSON layer
 
+    // Handle column dropdown change
     document.getElementById("gradeColumn").addEventListener("change", updateGrades);
 
+    // Load grades from Google Sheet and apply styling to reaches
     function updateGrades() {
       const selectedColumn = document.getElementById("gradeColumn").value;
 
@@ -128,28 +146,30 @@
           for (const line of lines.slice(1)) {
             const cols = line.split(",");
             const reach_id = cols[1];
-            const grade = parseInt(cols[columnIndex]);
-            if (!isNaN(grade)) {
-              reachGrades[reach_id] = grade;
-            }
+            const gradeRaw = cols[columnIndex]?.trim();
+            let grade = gradeRaw === "" ? 5 : parseInt(gradeRaw); // Blank becomes 5
+            grade = isNaN(grade) ? 5 : grade;
+            reachGrades[reach_id] = grade;
           }
 
+          // Apply styles and filter reaches by checkbox
           const activeGrades = Array.from(document.querySelectorAll('#gradeFilter input:checked')).map(cb => parseInt(cb.value));
           geoLayer.eachLayer(layer => {
             const reachId = layer.feature.properties.reach_id;
             const grade = reachGrades[reachId];
-            if (grade !== undefined) {
-              layer.setStyle({ color: gradeColors[grade] || 'gray', weight: 3 });
-              if (activeGrades.includes(grade)) {
-                layer.addTo(map);
-              } else {
-                map.removeLayer(layer);
-              }
+            const color = gradeColors[grade] || 'gray';
+            layer.setStyle({ color, weight: 3 });
+
+            if (activeGrades.includes(grade)) {
+              layer.addTo(map);
+            } else {
+              map.removeLayer(layer);
             }
           });
         });
     }
 
+    // Load and display the GeoJSON reach data
     fetch("https://calaneve.github.io/streammap/LBD_ReachCharacterization_GCSWGS84.geojson")
       .then(res => res.json())
       .then(geojson => {
@@ -173,6 +193,7 @@
             map.fitBounds(bounds, { padding: [20, 20] });
           }
 
+          // Search bar: highlight and zoom to match
           document.getElementById("searchBox").addEventListener("input", function(e) {
             const query = e.target.value.toLowerCase();
             geoLayer.eachLayer(layer => {
@@ -182,19 +203,23 @@
                 layer.openPopup();
               } else {
                 const grade = reachGrades[layer.feature.properties.reach_id];
-                layer.setStyle({ color: gradeColors[grade] || 'gray', weight: 3 });
+                const color = gradeColors[grade] || 'gray';
+                layer.setStyle({ color, weight: 3 });
               }
             });
           });
 
+          // Grade filter checkboxes
           document.querySelectorAll('#gradeFilter input[type="checkbox"]').forEach(cb => {
             cb.addEventListener('change', () => {
               const activeGrades = Array.from(document.querySelectorAll('#gradeFilter input:checked')).map(cb => parseInt(cb.value));
               geoLayer.eachLayer(layer => {
                 const reachId = layer.feature.properties.reach_id;
                 const grade = reachGrades[reachId];
+                const color = gradeColors[grade] || 'gray';
+                layer.setStyle({ color, weight: 3 });
+
                 if (activeGrades.includes(grade)) {
-                  layer.setStyle({ color: gradeColors[grade] || 'gray', weight: 3 });
                   layer.addTo(map);
                 } else {
                   map.removeLayer(layer);
@@ -203,7 +228,8 @@
             });
           });
 
-          updateGrades(); // initial load
+          // Initial load
+          updateGrades();
         });
       });
   </script>
