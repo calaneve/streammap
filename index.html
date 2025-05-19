@@ -67,27 +67,27 @@
   <input type="text" id="searchBox" placeholder="Search Reach ID...">
 
   <select id="gradeColumn">
-    <option value="Grade" selected>Grade</option>
-    <option value="Grade3">Grade3</option>
+    <option value="Flow Regime" selected>Grade</option>
+    <option value="Sediment">Grade3</option>
   </select>
 
   <div id="gradeFilter">
-    <label><input type="checkbox" value="0" checked> 0</label><br>
-    <label><input type="checkbox" value="1" checked> 1</label><br>
-    <label><input type="checkbox" value="2" checked> 2</label><br>
-    <label><input type="checkbox" value="3" checked> 3</label><br>
-    <label><input type="checkbox" value="4" checked> 4</label><br>
+    <label><input type="checkbox" value="F" checked> 0</label><br>
+    <label><input type="checkbox" value="D" checked> 1</label><br>
+    <label><input type="checkbox" value="C" checked> 2</label><br>
+    <label><input type="checkbox" value="B" checked> 3</label><br>
+    <label><input type="checkbox" value="A" checked> 4</label><br>
   </div>
 
   <div id="map"></div>
 
   <div class="legend" id="legend">
     <h4>Reach Grades</h4>
-    <div><i style="background:red"></i> 0 – Non-Functional</div>
-    <div><i style="background:orange"></i> 1 – Impaired</div>
-    <div><i style="background:yellow"></i> 2 – Functional</div>
-    <div><i style="background:lightgreen"></i> 3 – Highly Functional</div>
-    <div><i style="background:green"></i> 4 – Optimally Functional</div>
+    <div><i style="background:red"></i> F – Non-Functional</div>
+    <div><i style="background:orange"></i> D – Impaired</div>
+    <div><i style="background:yellow"></i> C – Functional</div>
+    <div><i style="background:lightgreen"></i> B – Highly Functional</div>
+    <div><i style="background:green"></i> A – Optimally Functional</div>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -100,11 +100,11 @@
     }).addTo(map);
 
     const gradeColors = {
-      0: 'red',
-      1: 'orange',
-      2: 'yellow',
-      3: 'lightgreen',
-      4: 'green'
+      F: 'red',
+      D: 'orange',
+      C: 'yellow',
+      B: 'lightgreen',
+      A: 'green'
     };
 
     let reachGrades = {};
@@ -115,7 +115,7 @@
     function updateGrades() {
       const selectedColumn = document.getElementById("gradeColumn").value;
 
-      fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQym-260xKW7ClK328zlGweWjDVlutHEJaV4GJgY3V_R9Kjf8tmlfzL8z27A025lqPqHUim0EG_RJE6/pub?gid=0&single=true&output=csv")
+      fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vROJntSYDQdg2vU1VTlMy8E-qOsSe9wr5_JMj1n1ks2wonNsk-JippjXmzizJJ9_BfgwMzzBV0Af50h/pub?gid=61075690&single=true&output=csv")
         .then(response => response.text())
         .then(csvText => {
           const lines = csvText.trim().split("\n");
