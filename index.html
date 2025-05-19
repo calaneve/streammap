@@ -1,9 +1,8 @@
-
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Reach Map - With Stream Type Filter</title>
+  <title>Reach Map - All Features (with Column J)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -21,21 +20,14 @@
     }
     #searchBox { top: 20px; }
     #gradeColumn { top: 60px; }
-    #updateButton { top: 100px; cursor: pointer; background: #f0f0f0; }
+    #updateButton {
+      top: 100px;
+      cursor: pointer;
+      background: #f0f0f0;
+    }
     #gradeFilter {
       position: absolute;
       top: 150px;
-      right: 20px;
-      z-index: 1001;
-      background: white;
-      padding: 10px;
-      border: 1px solid #ccc;
-      font-family: Arial, sans-serif;
-      font-size: 14px;
-    }
-    #streamFilter {
-      position: absolute;
-      top: 330px;
       right: 20px;
       z-index: 1001;
       background: white;
@@ -60,6 +52,23 @@
       display: none;
       box-shadow: 0 0 6px rgba(0,0,0,0.1);
     }
+    #infoTablePanel table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    #infoTablePanel th, #infoTablePanel td {
+      border: 1px solid #ddd;
+      padding: 4px;
+      text-align: left;
+    }
+    #infoTablePanel th {
+      background: #f4f4f4;
+    }
+    .grade-cell {
+      font-weight: bold;
+      color: white;
+      text-align: center;
+    }
     .legend {
       position: absolute;
       bottom: 20px;
@@ -80,212 +89,37 @@
       opacity: 0.8;
     }
     .legend div { clear: both; margin-bottom: 4px; }
-    .grade-cell {
-      font-weight: bold;
-      color: white;
-      text-align: center;
-    }
   </style>
 </head>
 <body>
-
-<input type="text" id="searchBox" placeholder="Search Reach ID...">
-<select id="gradeColumn"></select>
-<button id="updateButton">Update Map</button>
-
-<div id="gradeFilter">
-  <strong>Grades</strong><br>
-  <label><input type="checkbox" value="F" checked> F</label><br>
-  <label><input type="checkbox" value="D" checked> D</label><br>
-  <label><input type="checkbox" value="C" checked> C</label><br>
-  <label><input type="checkbox" value="B" checked> B</label><br>
-  <label><input type="checkbox" value="A" checked> A</label><br>
-  <label><input type="checkbox" value="No Data" checked> No Data</label><br>
-</div>
-
-<div id="streamFilter">
-  <strong>Stream Type</strong><br>
-  <div id="streamFilterOptions"><label><input type="checkbox" value="Colorado River Headwaters" checked> Colorado River Headwaters</label><br>
-<label><input type="checkbox" value="Colorado River Upper" checked> Colorado River Upper</label><br>
-<label><input type="checkbox" value="Colorado River Lower" checked> Colorado River Lower</label><br>
-<label><input type="checkbox" value="Colorado River Mid" checked> Colorado River Mid</label><br>
-<label><input type="checkbox" value="Fraser River Lower" checked> Fraser River Lower</label><br>
-<label><input type="checkbox" value="Fraser River Mid" checked> Fraser River Mid</label><br>
-<label><input type="checkbox" value="Fraser River Upper" checked> Fraser River Upper</label><br></div>
-</div>
-
-<div id="infoTablePanel">
-  <button onclick="document.getElementById('infoTablePanel').style.display='none'" style="float:right;">✖</button>
-  <div id="infoTableContent"></div>
-</div>
-
-<div id="map"></div>
-
-<div class="legend">
-  <h4>Reach Grades</h4>
-  <div><i style="background:red"></i> F – Non-Functional</div>
-  <div><i style="background:orange"></i> D – Impaired</div>
-  <div><i style="background:yellow"></i> C – Functional</div>
-  <div><i style="background:lightgreen"></i> B – Highly Functional</div>
-  <div><i style="background:green"></i> A – Optimally Functional</div>
-  <div><i style="background:gray"></i> No Data</div>
-</div>
-
-<script>
-const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vROJntSYDQdg2vU1VTlMy8E-qOsSe9wr5_JMj1n1ks2wonNsk-JippjXmzizJJ9_BfgwMzzBV0Af50h/pub?gid=61075690&single=true&output=csv";
-const geojsonUrl = "https://calaneve.github.io/streammap/LBD_ReachCharacterization_GCSWGS84.geojson";
-
-const gradeColors = {
-  'F': 'red',
-  'D': 'orange',
-  'C': 'yellow',
-  'B': 'lightgreen',
-  'A': 'green',
-  'No Data': 'gray'
-};
-
-let reachGrades = {};
-let geoLayer;
-let selectedColumn = "";
-
-function setupDropdown(headers) {
-  const dropdown = document.getElementById("gradeColumn");
-  const currentValue = dropdown.value;
-  dropdown.innerHTML = "";
-
-  for (let i = 2; i <= 9; i++) {
-    const col = headers[i];
-    const opt = document.createElement("option");
-    opt.value = col;
-    opt.textContent = col;
-    dropdown.appendChild(opt);
-  }
-
-  dropdown.value = currentValue || dropdown.options[0].value;
-  selectedColumn = dropdown.value;
-
-  dropdown.addEventListener("change", () => {
-    selectedColumn = dropdown.value;
-    updateGrades();
-  });
-}
-
-function updateGrades() {
-  fetch(csvUrl)
-    .then(res => res.text())
-    .then(csv => {
-      const lines = csv.trim().split("\n");
-      const headers = lines[0].split(",");
-      reachGrades = {};
-      const streamTypesSet = new Set();
-      const colIndex = headers.indexOf(selectedColumn);
-
-      for (const line of lines.slice(1)) {
-        const cols = line.split(",");
-        const streamType = cols[0]?.trim();
-        const reach_id = cols[1];
-        if (!reachGrades[reach_id]) reachGrades[reach_id] = {};
-
-        streamTypesSet.add(streamType);
-        for (let i = 2; i <= 9; i++) {
-          const aspect = headers[i];
-          const val = cols[i]?.trim().toUpperCase() || "No Data";
-          reachGrades[reach_id][aspect] = gradeColors[val] ? val : "No Data";
-        }
-        reachGrades[reach_id]["__streamType"] = streamType;
-      }
-
-      document.querySelectorAll('#streamFilterOptions input[type="checkbox"]').forEach(cb => {
-        cb.addEventListener('change', () => updateGrades());
-      });
-
-      const activeGrades = Array.from(document.querySelectorAll('#gradeFilter input:checked')).map(cb => cb.value);
-      const activeStreams = Array.from(document.querySelectorAll('#streamFilterOptions input:checked')).map(cb => cb.value);
-
-      geoLayer.eachLayer(layer => {
-        const props = layer.feature.properties;
-        const id = props.reach_id;
-        const grade = reachGrades[id]?.[selectedColumn];
-        const stream = reachGrades[id]?.__streamType;
-        const color = gradeColors[grade] || 'gray';
-
-        layer.setStyle({ color, weight: 6 });
-
-        if (activeGrades.includes(grade) && activeStreams.includes(stream)) {
-          layer.addTo(map);
-          layer.bindTooltip(`Reach: ${props.reach_id}<br>${selectedColumn}: ${grade}`, { sticky: true, direction: 'top' });
-          layer.bindPopup(`Reach ID: ${props.reach_id}<br>Grade: ${grade}`);
-
-          layer.on('click', () => {
-            const grades = reachGrades[props.reach_id] || {};
-            const tableHtml = `
-              <strong>Reach ID: ${props.reach_id}</strong><br><br>
-              <table>
-                <tr><th>Category</th><th>Grade</th></tr>
-                ${Object.entries(grades).map(([key, val]) => {
-                  if (key === "__streamType") return "";
-                  const bg = gradeColors[val] || 'gray';
-                  return `<tr><td>${key}</td><td class="grade-cell" style="background:${bg}">${val}</td></tr>`;
-                }).join("")}
-              </table>
-            `;
-            document.getElementById('infoTableContent').innerHTML = tableHtml;
-            document.getElementById('infoTablePanel').style.display = "block";
-          });
-        } else {
-          map.removeLayer(layer);
-        }
-      });
-    });
-}
-
-const map = L.map('map').setView([40.1, -105.87], 13);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 18,
-  attribution: '© OpenStreetMap contributors'
-}).addTo(map);
-
-fetch(geojsonUrl)
-  .then(res => res.json())
-  .then(geojson => {
-    geoLayer = L.geoJSON(geojson).addTo(map);
-
-    map.whenReady(() => {
-      const bounds = geoLayer.getBounds();
-      if (bounds.isValid()) map.fitBounds(bounds, { padding: [20, 20] });
-
-      document.getElementById("searchBox").addEventListener("input", function (e) {
-        const query = e.target.value.toLowerCase();
-        geoLayer.eachLayer(layer => {
-          const id = layer.feature.properties.reach_id.toLowerCase();
-          const match = id.includes(query);
-          const grade = reachGrades[layer.feature.properties.reach_id]?.[selectedColumn];
-          layer.setStyle({
-            color: match ? 'blue' : (gradeColors[grade] || 'gray'),
-            weight: match ? 8 : 6
-          });
-          if (match) layer.openPopup();
-        });
-      });
-
-      document.querySelectorAll('#gradeFilter input[type="checkbox"]').forEach(cb => {
-        cb.addEventListener('change', () => updateGrades());
-      });
-
-      fetch(csvUrl)
-        .then(r => r.text())
-        .then(t => {
-          const h = t.split("\n")[0].split(",");
-          setupDropdown(h);
-          updateGrades();
-        });
-    });
-  });
-
-document.getElementById("updateButton").addEventListener("click", () => {
-  updateGrades();
-});
-</script>
+  <input type="text" id="searchBox" placeholder="Search Reach ID...">
+  <select id="gradeColumn"></select>
+  <button id="updateButton">Update Map</button>
+  <div id="gradeFilter">
+    <label><input type="checkbox" value="F" checked> F</label><br>
+    <label><input type="checkbox" value="D" checked> D</label><br>
+    <label><input type="checkbox" value="C" checked> C</label><br>
+    <label><input type="checkbox" value="B" checked> B</label><br>
+    <label><input type="checkbox" value="A" checked> A</label><br>
+    <label><input type="checkbox" value="No Data" checked> No Data</label><br>
+  </div>
+  <div id="infoTablePanel">
+    <button onclick="document.getElementById('infoTablePanel').style.display='none'" style="float:right;">✖</button>
+    <div id="infoTableContent"></div>
+  </div>
+  <div id="map"></div>
+  <div class="legend">
+    <h4>Reach Grades</h4>
+    <div><i style="background:red"></i> F – Non-Functional</div>
+    <div><i style="background:orange"></i> D – Impaired</div>
+    <div><i style="background:yellow"></i> C – Functional</div>
+    <div><i style="background:lightgreen"></i> B – Highly Functional</div>
+    <div><i style="background:green"></i> A – Optimally Functional</div>
+    <div><i style="background:gray"></i> No Data</div>
+  </div>
 </body>
 </html>
+
+
+
 
