@@ -1,12 +1,10 @@
-
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Reach Map - All Features</title>
+  <title>Reach Map - Stream Grades with Hover Tooltip</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     #map { height: 100vh; }
 
@@ -39,45 +37,6 @@
       border: 1px solid #ccc;
       font-family: Arial, sans-serif;
       font-size: 14px;
-    }
-
-    #infoTablePanel {
-      position: absolute;
-      top: 20px;
-      left: 240px;
-      width: 270px;
-      max-height: 400px;
-      overflow-y: auto;
-      background: white;
-      border: 1px solid #ccc;
-      padding: 10px;
-      font-family: Arial, sans-serif;
-      font-size: 14px;
-      z-index: 1001;
-      display: none;
-      box-shadow: 0 0 6px rgba(0,0,0,0.1);
-    }
-
-    #infoTablePanel table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    #infoTablePanel th,
-    #infoTablePanel td {
-      border: 1px solid #ddd;
-      padding: 4px;
-      text-align: left;
-    }
-
-    #infoTablePanel th {
-      background: #f4f4f4;
-    }
-
-    .grade-cell {
-      font-weight: bold;
-      color: white;
-      text-align: center;
     }
 
     .legend {
@@ -119,11 +78,6 @@
     <label><input type="checkbox" value="No Data" checked> No Data</label><br>
   </div>
 
-  <div id="infoTablePanel">
-    <button onclick="document.getElementById('infoTablePanel').style.display='none'" style="float:right;">✖</button>
-    <div id="infoTableContent"></div>
-  </div>
-
   <div id="map"></div>
 
   <div class="legend">
@@ -136,9 +90,9 @@
     <div><i style="background:gray"></i> No Data</div>
   </div>
 
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
     const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vROJntSYDQdg2vU1VTlMy8E-qOsSe9wr5_JMj1n1ks2wonNsk-JippjXmzizJJ9_BfgwMzzBV0Af50h/pub?gid=61075690&single=true&output=csv";
-    const geojsonUrl = "https://calaneve.github.io/streammap/LBD_ReachCharacterization_GCSWGS84.geojson";
 
     const gradeColors = {
       'F': 'red',
@@ -179,70 +133,40 @@
       fetch(csvUrl)
         .then(res => res.text())
         .then(csv => {
-          const lines = csv.trim().split("
-");
+          const lines = csv.trim().split("\n");
           const headers = lines[0].split(",");
-          reachGrades = {};
           const colIndex = headers.indexOf(selectedColumn);
+          reachGrades = {};
 
           for (const line of lines.slice(1)) {
             const cols = line.split(",");
             const reach_id = cols[1];
-            if (!reachGrades[reach_id]) reachGrades[reach_id] = {};
-            for (let i = 2; i < headers.length; i++) {
-              const aspect = headers[i];
-              const val = cols[i]?.trim().toUpperCase() || "No Data";
-              reachGrades[reach_id][aspect] = gradeColors[val] ? val : "No Data";
-            }
+            const raw = cols[colIndex]?.trim().toUpperCase();
+            const grade = gradeColors.hasOwnProperty(raw) ? raw : "No Data";
+            reachGrades[reach_id] = grade;
           }
 
           const activeGrades = Array.from(document.querySelectorAll('#gradeFilter input:checked')).map(cb => cb.value);
+
           geoLayer.eachLayer(layer => {
+            const id = layer.feature.properties.reach_id;
             const props = layer.feature.properties;
-            const id = props.reach_id;
-            const grade = reachGrades[id]?.[selectedColumn];
+            const grade = reachGrades[id];
             const color = gradeColors[grade] || 'gray';
 
             layer.setStyle({ color, weight: 6 });
 
             if (activeGrades.includes(grade)) {
               layer.addTo(map);
-              layer.bindTooltip(`Reach: ${props.reach_id}<br>${selectedColumn}: ${grade}`, { sticky: true, direction: 'top' });
-              layer.bindPopup(`Reach ID: ${props.reach_id}<br>Grade: ${grade}`);
 
-              
-    layer.on('click', () => {
-      const props = layer.feature.properties;
-      const reachId = props.reach_id;
-      const grades = reachGrades[reachId] || {};
-      const tableHtml = `
-        <strong>Reach ID: ${reachId}</strong><br><br>
-        <table>
-          <tr><th>Category</th><th>Grade</th></tr>
-          ${Object.entries(grades).map(([key, val]) => {
-            const bg = gradeColors[val] || 'gray';
-            return `<tr><td>${key}</td><td class="grade-cell" style="background:${bg}">${val}</td></tr>`;
-          }).join("")}
-        </table>
-      `;
-      document.getElementById('infoTableContent').innerHTML = tableHtml;
-      document.getElementById('infoTablePanel').style.display = "block";
-    });
-    
-                const grades = reachGrades[props.reach_id] || {};
-                const tableHtml = `
-                  <strong>Reach ID: ${props.reach_id}</strong><br><br>
-                  <table>
-                    <tr><th>Category</th><th>Grade</th></tr>
-                    ${Object.entries(grades).map(([key, val]) => {
-                      const bg = gradeColors[val] || 'gray';
-                      return `<tr><td>${key}</td><td class="grade-cell" style="background:${bg}">${val}</td></tr>`;
-                    }).join("")}
-                  </table>
-                `;
-                document.getElementById('infoTableContent').innerHTML = tableHtml;
-                document.getElementById('infoTablePanel').style.display = "block";
+              // Tooltip on hover
+              layer.bindTooltip(`Reach: ${props.reach_id}<br>${selectedColumn}: ${grade}`, {
+                sticky: true,
+                direction: 'top'
               });
+
+              // Click popup
+              layer.bindPopup(`Reach ID: ${props.reach_id}<br>Grade: ${grade}`);
             } else {
               map.removeLayer(layer);
             }
@@ -256,10 +180,16 @@
       attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    fetch(geojsonUrl)
+    fetch("https://calaneve.github.io/streammap/LBD_ReachCharacterization_GCSWGS84.geojson")
       .then(res => res.json())
       .then(geojson => {
-        geoLayer = L.geoJSON(geojson).addTo(map);
+        geoLayer = L.geoJSON(geojson, {
+          style: feature => {
+            const grade = reachGrades[feature.properties.reach_id];
+            return { color: gradeColors[grade] || 'gray', weight: 6 };
+          }
+        }).addTo(map);
+
         map.whenReady(() => {
           const bounds = geoLayer.getBounds();
           if (bounds.isValid()) map.fitBounds(bounds, { padding: [20, 20] });
@@ -269,7 +199,7 @@
             geoLayer.eachLayer(layer => {
               const id = layer.feature.properties.reach_id.toLowerCase();
               const match = id.includes(query);
-              const grade = reachGrades[layer.feature.properties.reach_id]?.[selectedColumn];
+              const grade = reachGrades[layer.feature.properties.reach_id];
               layer.setStyle({
                 color: match ? 'blue' : (gradeColors[grade] || 'gray'),
                 weight: match ? 8 : 6
@@ -285,8 +215,7 @@
           fetch(csvUrl)
             .then(r => r.text())
             .then(t => {
-              const h = t.split("
-")[0].split(",");
+              const h = t.split("\n")[0].split(",");
               setupDropdown(h);
               updateGrades();
             });
@@ -299,3 +228,5 @@
   </script>
 </body>
 </html>
+
+
