@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Reach Map - Stream Grades</title>
+  <title>Reach Map - Stream Grades with Hover Tooltip</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
@@ -112,7 +112,7 @@
       const currentValue = dropdown.value;
       dropdown.innerHTML = "";
 
-      for (let i = 2; i < headers.length; i++) { // Skip reach_id
+      for (let i = 2; i < headers.length; i++) {
         const col = headers[i];
         const opt = document.createElement("option");
         opt.value = col;
@@ -147,16 +147,26 @@
           }
 
           const activeGrades = Array.from(document.querySelectorAll('#gradeFilter input:checked')).map(cb => cb.value);
+
           geoLayer.eachLayer(layer => {
             const id = layer.feature.properties.reach_id;
             const props = layer.feature.properties;
             const grade = reachGrades[id];
             const color = gradeColors[grade] || 'gray';
+
             layer.setStyle({ color, weight: 6 });
 
             if (activeGrades.includes(grade)) {
               layer.addTo(map);
-              layer.bindPopup(`FID: ${props.fid}<br>Reach ID: ${props.reach_id}<br>Grade: ${grade}`);
+
+              // Tooltip on hover
+              layer.bindTooltip(`Reach: ${props.reach_id}<br>${selectedColumn}: ${grade}`, {
+                sticky: true,
+                direction: 'top'
+              });
+
+              // Click popup
+              layer.bindPopup(`Reach ID: ${props.reach_id}<br>Grade: ${grade}`);
             } else {
               map.removeLayer(layer);
             }
