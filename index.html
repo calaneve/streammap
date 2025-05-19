@@ -210,7 +210,25 @@
               layer.bindTooltip(`Reach: ${props.reach_id}<br>${selectedColumn}: ${grade}`, { sticky: true, direction: 'top' });
               layer.bindPopup(`Reach ID: ${props.reach_id}<br>Grade: ${grade}`);
 
-              layer.on('click', () => {
+              
+    layer.on('click', () => {
+      const props = layer.feature.properties;
+      const reachId = props.reach_id;
+      const grades = reachGrades[reachId] || {};
+      const tableHtml = `
+        <strong>Reach ID: ${reachId}</strong><br><br>
+        <table>
+          <tr><th>Category</th><th>Grade</th></tr>
+          ${Object.entries(grades).map(([key, val]) => {
+            const bg = gradeColors[val] || 'gray';
+            return `<tr><td>${key}</td><td class="grade-cell" style="background:${bg}">${val}</td></tr>`;
+          }).join("")}
+        </table>
+      `;
+      document.getElementById('infoTableContent').innerHTML = tableHtml;
+      document.getElementById('infoTablePanel').style.display = "block";
+    });
+    
                 const grades = reachGrades[props.reach_id] || {};
                 const tableHtml = `
                   <strong>Reach ID: ${props.reach_id}</strong><br><br>
