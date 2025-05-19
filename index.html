@@ -2,47 +2,65 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Reach Map with Info Panel</title>
+  <title>Reach Map - Stream Grades</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     #map { height: 100vh; }
+
+    /* Move search + dropdown to top right */
     #searchBox, #gradeColumn {
-      position: absolute; left: 20px; z-index: 1001;
-      padding: 6px; font-size: 14px; width: 200px;
-      background: white; border: 1px solid #ccc;
+      position: absolute;
+      right: 20px;
+      z-index: 1001;
+      padding: 6px;
+      font-size: 14px;
+      width: 200px;
+      background: white;
+      border: 1px solid #ccc;
     }
+
     #searchBox { top: 20px; }
     #gradeColumn { top: 60px; }
 
     #gradeFilter {
-      position: absolute; top: 110px; left: 20px; z-index: 1001;
-      background: white; padding: 10px; border: 1px solid #ccc;
-      font-family: Arial; font-size: 14px;
-    }
-
-    #infoPanel {
-      position: absolute; top: 20px; right: 20px; z-index: 1001;
-      background: white; padding: 10px; border: 1px solid #ccc;
-      font-family: Arial; font-size: 14px; width: 250px;
-      box-shadow: 0 0 6px rgba(0,0,0,0.1);
+      position: absolute;
+      top: 110px;
+      right: 20px;
+      z-index: 1001;
+      background: white;
+      padding: 10px;
+      border: 1px solid #ccc;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
     }
 
     .legend {
-      position: absolute; bottom: 20px; left: 20px; z-index: 1000;
-      background: white; padding: 10px; border: 1px solid #ccc;
-      font-family: Arial; font-size: 14px;
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      background: white;
+      padding: 10px;
+      border: 1px solid #ccc;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      z-index: 1000;
     }
 
     .legend i {
-      width: 14px; height: 14px; float: left;
-      margin-right: 8px; margin-top: 2px; opacity: 0.8;
+      width: 14px;
+      height: 14px;
+      float: left;
+      margin-right: 8px;
+      margin-top: 2px;
+      opacity: 0.8;
     }
 
     .legend div { clear: both; margin-bottom: 4px; }
   </style>
 </head>
 <body>
+
   <input type="text" id="searchBox" placeholder="Search Reach ID...">
   <select id="gradeColumn"></select>
 
@@ -53,11 +71,6 @@
     <label><input type="checkbox" value="B" checked> B</label><br>
     <label><input type="checkbox" value="A" checked> A</label><br>
     <label><input type="checkbox" value="No Data" checked> No Data</label><br>
-  </div>
-
-  <div id="infoPanel">
-    <strong>Reach Info</strong><br>
-    Click a stream to view details.
   </div>
 
   <div id="map"></div>
@@ -77,14 +90,17 @@
     const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vROJntSYDQdg2vU1VTlMy8E-qOsSe9wr5_JMj1n1ks2wonNsk-JippjXmzizJJ9_BfgwMzzBV0Af50h/pub?gid=61075690&single=true&output=csv";
 
     const gradeColors = {
-      'F': 'red', 'D': 'orange', 'C': 'yellow',
-      'B': 'lightgreen', 'A': 'green', 'No Data': 'gray'
+      'F': 'red',
+      'D': 'orange',
+      'C': 'yellow',
+      'B': 'lightgreen',
+      'A': 'green',
+      'No Data': 'gray'
     };
 
     let reachGrades = {};
     let geoLayer;
     let selectedColumn = "";
-    let currentGrades = {}; // For info panel
 
     function setupDropdown(headers) {
       const dropdown = document.getElementById("gradeColumn");
@@ -112,7 +128,6 @@
           const lines = csv.trim().split("\n");
           const headers = lines[0].split(",");
           const colIndex = headers.indexOf(selectedColumn);
-          currentGrades = {};
           reachGrades = {};
 
           for (const line of lines.slice(1)) {
@@ -123,24 +138,16 @@
             reachGrades[reach_id] = grade;
           }
 
-          const active = Array.from(document.querySelectorAll('#gradeFilter input:checked')).map(cb => cb.value);
+          const activeGrades = Array.from(document.querySelectorAll('#gradeFilter input:checked')).map(cb => cb.value);
           geoLayer.eachLayer(layer => {
             const id = layer.feature.properties.reach_id;
             const grade = reachGrades[id];
-            layer.setStyle({ color: gradeColors[grade] || 'gray', weight: 3 });
-            if (active.includes(grade)) layer.addTo(map);
+            const color = gradeColors[grade] || 'gray';
+            layer.setStyle({ color, weight: 6 }); // Wider lines here
+            if (activeGrades.includes(grade)) layer.addTo(map);
             else map.removeLayer(layer);
           });
         });
-    }
-
-    function updateInfoPanel(fid, reach_id, grade) {
-      const panel = document.getElementById("infoPanel");
-      panel.innerHTML = `<strong>Reach Info</strong><br>
-        <b>Reach ID:</b> ${reach_id}<br>
-        <b>FID:</b> ${fid}<br>
-        <b>Grade:</b> ${grade}<br>
-        <b>Source:</b> ${selectedColumn}`;
     }
 
     const map = L.map('map').setView([40.1, -105.87], 13);
@@ -154,12 +161,15 @@
         geoLayer = L.geoJSON(geojson, {
           style: feature => {
             const grade = reachGrades[feature.properties.reach_id];
-            return { color: gradeColors[grade] || 'gray', weight: 3 };
+            return {
+              color: gradeColors[grade] || 'gray',
+              weight: 6 // Wider lines
+            };
           },
           onEachFeature: (feature, layer) => {
-            const p = feature.properties;
-            const g = reachGrades[p.reach_id] || "No Data";
-            layer.on('click', () => updateInfoPanel(p.fid, p.reach_id, g));
+            const props = feature.properties;
+            const grade = reachGrades[props.reach_id] || "No Data";
+            layer.bindPopup(`FID: ${props.fid}<br>Reach ID: ${props.reach_id}<br>Grade: ${grade}`);
           }
         }).addTo(map);
 
@@ -175,7 +185,7 @@
               const grade = reachGrades[layer.feature.properties.reach_id];
               layer.setStyle({
                 color: match ? 'blue' : (gradeColors[grade] || 'gray'),
-                weight: match ? 5 : 3
+                weight: match ? 8 : 6
               });
               if (match) layer.openPopup();
             });
