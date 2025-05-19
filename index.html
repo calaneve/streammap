@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -104,7 +105,13 @@
 
 <div id="streamFilter">
   <strong>Stream Type</strong><br>
-  <div id="streamFilterOptions"></div>
+  <div id="streamFilterOptions"><label><input type="checkbox" value="Colorado River Headwaters" checked> Colorado River Headwaters</label><br>
+<label><input type="checkbox" value="Colorado River Upper" checked> Colorado River Upper</label><br>
+<label><input type="checkbox" value="Colorado River Lower" checked> Colorado River Lower</label><br>
+<label><input type="checkbox" value="Colorado River Mid" checked> Colorado River Mid</label><br>
+<label><input type="checkbox" value="Fraser River Lower" checked> Fraser River Lower</label><br>
+<label><input type="checkbox" value="Fraser River Mid" checked> Fraser River Mid</label><br>
+<label><input type="checkbox" value="Fraser River Upper" checked> Fraser River Upper</label><br></div>
 </div>
 
 <div id="infoTablePanel">
@@ -170,7 +177,7 @@ function updateGrades() {
       const lines = csv.trim().split("\n");
       const headers = lines[0].split(",");
       reachGrades = {};
-      const streamTypesList = ['Colorado River Headwaters', 'Colorado River Upper', 'Colorado River Lower', 'Colorado River Mid', 'Fraser River Lower', 'Fraser River Mid', 'Fraser River Upper'];
+      const streamTypesSet = new Set();
       const colIndex = headers.indexOf(selectedColumn);
 
       for (const line of lines.slice(1)) {
@@ -190,7 +197,7 @@ function updateGrades() {
 
       const container = document.getElementById("streamFilterOptions");
       container.innerHTML = "";
-      streamTypesList.forEach(type => {
+      Array.from(streamTypesSet).forEach(type => {
         const id = `stream-${type.replace(/\s+/g, '-')}`;
         container.innerHTML += `<label><input type="checkbox" value="${type}" checked> ${type}</label><br>`;
       });
@@ -288,6 +295,4 @@ document.getElementById("updateButton").addEventListener("click", () => {
 </script>
 </body>
 </html>
-
-
 
