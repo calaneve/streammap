@@ -8,8 +8,7 @@
   <style>
     #map { height: 100vh; }
 
-    /* Move search + dropdown to top right */
-    #searchBox, #gradeColumn {
+    #searchBox, #gradeColumn, #updateButton {
       position: absolute;
       right: 20px;
       z-index: 1001;
@@ -22,10 +21,15 @@
 
     #searchBox { top: 20px; }
     #gradeColumn { top: 60px; }
+    #updateButton {
+      top: 100px;
+      cursor: pointer;
+      background: #f0f0f0;
+    }
 
     #gradeFilter {
       position: absolute;
-      top: 110px;
+      top: 150px;
       right: 20px;
       z-index: 1001;
       background: white;
@@ -63,6 +67,7 @@
 
   <input type="text" id="searchBox" placeholder="Search Reach ID...">
   <select id="gradeColumn"></select>
+  <button id="updateButton">Update Map</button>
 
   <div id="gradeFilter">
     <label><input type="checkbox" value="F" checked> F</label><br>
@@ -104,9 +109,10 @@
 
     function setupDropdown(headers) {
       const dropdown = document.getElementById("gradeColumn");
+      const currentValue = dropdown.value;
       dropdown.innerHTML = "";
 
-      for (let i = 2; i < headers.length; i++) { // Skip Column B (reach_id)
+      for (let i = 2; i < headers.length; i++) {
         const col = headers[i];
         const opt = document.createElement("option");
         opt.value = col;
@@ -114,7 +120,10 @@
         dropdown.appendChild(opt);
       }
 
-      selectedColumn = dropdown.options[0].value;
+      // Try to keep previous selection
+      dropdown.value = currentValue || dropdown.options[0].value;
+      selectedColumn = dropdown.value;
+
       dropdown.addEventListener("change", () => {
         selectedColumn = dropdown.value;
         updateGrades();
@@ -143,7 +152,7 @@
             const id = layer.feature.properties.reach_id;
             const grade = reachGrades[id];
             const color = gradeColors[grade] || 'gray';
-            layer.setStyle({ color, weight: 6 }); // Wider lines here
+            layer.setStyle({ color, weight: 6 });
             if (activeGrades.includes(grade)) layer.addTo(map);
             else map.removeLayer(layer);
           });
@@ -163,7 +172,7 @@
             const grade = reachGrades[feature.properties.reach_id];
             return {
               color: gradeColors[grade] || 'gray',
-              weight: 6 // Wider lines
+              weight: 6
             };
           },
           onEachFeature: (feature, layer) => {
@@ -204,6 +213,11 @@
             });
         });
       });
+
+    // Handle Update Map button
+    document.getElementById("updateButton").addEventListener("click", () => {
+      updateGrades();
+    });
   </script>
 </body>
 </html>
