@@ -206,7 +206,7 @@ function updateGrades() {
         const props = layer.feature.properties;
         const id = props.reach_id;
         const grade = reachGrades[id]?.[selectedColumn];
-        const stream = reachGrades[id]?.__streamType;
+        const stream = reachGrades[id] ? reachGrades[id]["__streamType"] : "";
         const color = gradeColors[grade] || 'gray';
 
         layer.setStyle({ color, weight: 6 });
@@ -288,4 +288,3 @@ document.getElementById("updateButton").addEventListener("click", () => {
 </script>
 </body>
 </html>
-
