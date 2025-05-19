@@ -2,12 +2,12 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Reach Map - All Features (with Column J)</title>
+  <title>Reach Map - Stream Grades with Hover Tooltip</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     #map { height: 100vh; }
+
     #searchBox, #gradeColumn, #updateButton {
       position: absolute;
       right: 20px;
@@ -18,6 +18,7 @@
       background: white;
       border: 1px solid #ccc;
     }
+
     #searchBox { top: 20px; }
     #gradeColumn { top: 60px; }
     #updateButton {
@@ -25,6 +26,7 @@
       cursor: pointer;
       background: #f0f0f0;
     }
+
     #gradeFilter {
       position: absolute;
       top: 150px;
@@ -36,39 +38,7 @@
       font-family: Arial, sans-serif;
       font-size: 14px;
     }
-    #infoTablePanel {
-      position: absolute;
-      top: 20px;
-      left: 240px;
-      width: 270px;
-      max-height: 400px;
-      overflow-y: auto;
-      background: white;
-      border: 1px solid #ccc;
-      padding: 10px;
-      font-family: Arial, sans-serif;
-      font-size: 14px;
-      z-index: 1001;
-      display: none;
-      box-shadow: 0 0 6px rgba(0,0,0,0.1);
-    }
-    #infoTablePanel table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    #infoTablePanel th, #infoTablePanel td {
-      border: 1px solid #ddd;
-      padding: 4px;
-      text-align: left;
-    }
-    #infoTablePanel th {
-      background: #f4f4f4;
-    }
-    .grade-cell {
-      font-weight: bold;
-      color: white;
-      text-align: center;
-    }
+
     .legend {
       position: absolute;
       bottom: 20px;
@@ -80,6 +50,7 @@
       font-size: 14px;
       z-index: 1000;
     }
+
     .legend i {
       width: 14px;
       height: 14px;
@@ -88,13 +59,16 @@
       margin-top: 2px;
       opacity: 0.8;
     }
+
     .legend div { clear: both; margin-bottom: 4px; }
   </style>
 </head>
 <body>
+
   <input type="text" id="searchBox" placeholder="Search Reach ID...">
   <select id="gradeColumn"></select>
   <button id="updateButton">Update Map</button>
+
   <div id="gradeFilter">
     <label><input type="checkbox" value="F" checked> F</label><br>
     <label><input type="checkbox" value="D" checked> D</label><br>
@@ -103,11 +77,9 @@
     <label><input type="checkbox" value="A" checked> A</label><br>
     <label><input type="checkbox" value="No Data" checked> No Data</label><br>
   </div>
-  <div id="infoTablePanel">
-    <button onclick="document.getElementById('infoTablePanel').style.display='none'" style="float:right;">✖</button>
-    <div id="infoTableContent"></div>
-  </div>
+
   <div id="map"></div>
+
   <div class="legend">
     <h4>Reach Grades</h4>
     <div><i style="background:red"></i> F – Non-Functional</div>
@@ -117,8 +89,147 @@
     <div><i style="background:green"></i> A – Optimally Functional</div>
     <div><i style="background:gray"></i> No Data</div>
   </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vROJntSYDQdg2vU1VTlMy8E-qOsSe9wr5_JMj1n1ks2wonNsk-JippjXmzizJJ9_BfgwMzzBV0Af50h/pub?gid=61075690&single=true&output=csv";
+
+    const gradeColors = {
+      'F': 'red',
+      'D': 'orange',
+      'C': 'yellow',
+      'B': 'lightgreen',
+      'A': 'green',
+      'No Data': 'gray'
+    };
+
+    let reachGrades = {};
+    let geoLayer;
+    let selectedColumn = "";
+
+    function setupDropdown(headers) {
+      const dropdown = document.getElementById("gradeColumn");
+      const currentValue = dropdown.value;
+      dropdown.innerHTML = "";
+
+      for (let i = 2; i < headers.length; i++) {
+        const col = headers[i];
+        const opt = document.createElement("option");
+        opt.value = col;
+        opt.textContent = col;
+        dropdown.appendChild(opt);
+      }
+
+      dropdown.value = currentValue || dropdown.options[0].value;
+      selectedColumn = dropdown.value;
+
+      dropdown.addEventListener("change", () => {
+        selectedColumn = dropdown.value;
+        updateGrades();
+      });
+    }
+
+    function updateGrades() {
+      fetch(csvUrl)
+        .then(res => res.text())
+        .then(csv => {
+          const lines = csv.trim().split("\n");
+          const headers = lines[0].split(",");
+          const colIndex = headers.indexOf(selectedColumn);
+          reachGrades = {};
+
+          for (const line of lines.slice(1)) {
+            const cols = line.split(",");
+            const reach_id = cols[1];
+            const raw = cols[colIndex]?.trim().toUpperCase();
+            const grade = gradeColors.hasOwnProperty(raw) ? raw : "No Data";
+            reachGrades[reach_id] = grade;
+          }
+
+          const activeGrades = Array.from(document.querySelectorAll('#gradeFilter input:checked')).map(cb => cb.value);
+
+          geoLayer.eachLayer(layer => {
+            const id = layer.feature.properties.reach_id;
+            const props = layer.feature.properties;
+            const grade = reachGrades[id];
+            const color = gradeColors[grade] || 'gray';
+
+            layer.setStyle({ color, weight: 6 });
+
+            if (activeGrades.includes(grade)) {
+              layer.addTo(map);
+
+              // Tooltip on hover
+              layer.bindTooltip(`Reach: ${props.reach_id}<br>${selectedColumn}: ${grade}`, {
+                sticky: true,
+                direction: 'top'
+              });
+
+              // Click popup
+              layer.bindPopup(`Reach ID: ${props.reach_id}<br>Grade: ${grade}`);
+            } else {
+              map.removeLayer(layer);
+            }
+          });
+        });
+    }
+
+    const map = L.map('map').setView([40.1, -105.87], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    fetch("https://calaneve.github.io/streammap/LBD_ReachCharacterization_GCSWGS84.geojson")
+      .then(res => res.json())
+      .then(geojson => {
+        geoLayer = L.geoJSON(geojson, {
+          style: feature => {
+            const grade = reachGrades[feature.properties.reach_id];
+            return { color: gradeColors[grade] || 'gray', weight: 6 };
+          }
+        }).addTo(map);
+
+        map.whenReady(() => {
+          const bounds = geoLayer.getBounds();
+          if (bounds.isValid()) map.fitBounds(bounds, { padding: [20, 20] });
+
+          document.getElementById("searchBox").addEventListener("input", function (e) {
+            const query = e.target.value.toLowerCase();
+            geoLayer.eachLayer(layer => {
+              const id = layer.feature.properties.reach_id.toLowerCase();
+              const match = id.includes(query);
+              const grade = reachGrades[layer.feature.properties.reach_id];
+              layer.setStyle({
+                color: match ? 'blue' : (gradeColors[grade] || 'gray'),
+                weight: match ? 8 : 6
+              });
+              if (match) layer.openPopup();
+            });
+          });
+
+          document.querySelectorAll('#gradeFilter input[type="checkbox"]').forEach(cb => {
+            cb.addEventListener('change', () => updateGrades());
+          });
+
+          fetch(csvUrl)
+            .then(r => r.text())
+            .then(t => {
+              const h = t.split("\n")[0].split(",");
+              setupDropdown(h);
+              updateGrades();
+            });
+        });
+      });
+
+    document.getElementById("updateButton").addEventListener("click", () => {
+      updateGrades();
+    });
+  </script>
 </body>
 </html>
+
+
 
 
 
