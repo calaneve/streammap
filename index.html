@@ -195,13 +195,6 @@ function updateGrades() {
         reachGrades[reach_id]["__streamType"] = streamType;
       }
 
-      const container = document.getElementById("streamFilterOptions");
-      container.innerHTML = "";
-      Array.from(streamTypesSet).forEach(type => {
-        const id = `stream-${type.replace(/\s+/g, '-')}`;
-        container.innerHTML += `<label><input type="checkbox" value="${type}" checked> ${type}</label><br>`;
-      });
-
       document.querySelectorAll('#streamFilterOptions input[type="checkbox"]').forEach(cb => {
         cb.addEventListener('change', () => updateGrades());
       });
@@ -295,3 +288,4 @@ document.getElementById("updateButton").addEventListener("click", () => {
 </script>
 </body>
 </html>
+
