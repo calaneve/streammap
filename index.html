@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -171,7 +170,7 @@ function updateGrades() {
       const lines = csv.trim().split("\n");
       const headers = lines[0].split(",");
       reachGrades = {};
-      const streamTypesSet = new Set();
+      const streamTypesList = ['Colorado River Headwaters', 'Colorado River Upper', 'Colorado River Lower', 'Colorado River Mid', 'Fraser River Lower', 'Fraser River Mid', 'Fraser River Upper'];
       const colIndex = headers.indexOf(selectedColumn);
 
       for (const line of lines.slice(1)) {
@@ -191,7 +190,7 @@ function updateGrades() {
 
       const container = document.getElementById("streamFilterOptions");
       container.innerHTML = "";
-      Array.from(streamTypesSet).forEach(type => {
+      streamTypesList.forEach(type => {
         const id = `stream-${type.replace(/\s+/g, '-')}`;
         container.innerHTML += `<label><input type="checkbox" value="${type}" checked> ${type}</label><br>`;
       });
