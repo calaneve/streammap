@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -74,6 +75,9 @@
     <strong>Filter by Reach:</strong><br>
     <div id="reachCheckboxes">Loading reaches...</div>
   </div>
+  <div id="layerToggle" style="position:absolute; top:650px; left:20px; z-index:1001; background:white; padding:10px; border:1px solid #ccc; font-family:Arial, sans-serif; font-size:14px;">
+    <label><input type="checkbox" id="toggleSubwatersheds" checked> Show Subwatersheds</label>
+  </div>
   <div id="map"></div>
   <div class="legend">
     <h4>Reach Grades</h4>
@@ -83,13 +87,15 @@
     <div><i style="background:lightgreen"></i> B – Highly Functional</div>
     <div><i style="background:green"></i> A – Optimally Functional</div>
     <div><i style="background:gray"></i> No Data</div>
+    <div><i style="background:blue; opacity:0.5"></i> Subwatersheds</div>
+    <div><i style="background:purple; border: 1px solid #333;"></i> CEA Boundary</div>
   </div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
     const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vROJntSYDQdg2vU1VTlMy8E-qOsSe9wr5_JMj1n1ks2wonNsk-JippjXmzizJJ9_BfgwMzzBV0Af50h/pub?gid=61075690&single=true&output=csv";
     const gradeColors = { 'F': 'red', 'D': 'orange', 'C': 'yellow', 'B': 'lightgreen', 'A': 'green', 'No Data': 'gray' };
     let reachGrades = {};
-    let geoLayer;
+    let geoLayer, ceaLayer, subwatershedsLayer;
     let selectedColumn = "";
     let reachCheckboxesInitialized = false;
 
@@ -132,7 +138,8 @@
       fetch(csvUrl)
         .then(res => res.text())
         .then(csv => {
-          const lines = csv.trim().split("\n");
+          const lines = csv.trim().split("
+");
           const headers = lines[0].split(",");
           const colIndex = headers.indexOf(selectedColumn);
           reachGrades = {};
@@ -214,13 +221,35 @@
         });
       });
 
-    document.getElementById("updateButton").addEventListener("click", () => updateGrades());
-  </script>
+// CEA Boundary (always visible)
+fetch("https://calaneve.github.io/streammap/LBD_CEA_Boundary.geojson")
+  .then(res => res.json())
+  .then(data => {
+    ceaLayer = L.geoJSON(data, {
+      style: { color: 'purple', weight: 2, fillOpacity: 0.1 }
+    }).addTo(map);
+  });
+
+// Subwatersheds (toggleable)
+fetch("https://calaneve.github.io/streammap/StreamGroupSubwatersheds.geojson")
+  .then(res => res.json())
+  .then(data => {
+    subwatershedsLayer = L.geoJSON(data, {
+      style: { color: 'blue', weight: 1, dashArray: '4,4', fillOpacity: 0.5, fillColor: 'blue' }
+    }).addTo(map);
+  });
+
+document.getElementById("toggleSubwatersheds").addEventListener("change", function () {
+  if (this.checked) {
+    subwatershedsLayer.addTo(map);
+  } else {
+    map.removeLayer(subwatershedsLayer);
+  }
+});
+
+document.getElementById("updateButton").addEventListener("click", () => updateGrades());
+</script>
 </body>
 </html>
-
-
-
-
 
 
