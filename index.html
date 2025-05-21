@@ -91,7 +91,7 @@
     let reachGrades = {};
     let geoLayer;
     let selectedColumn = "";
-    let currentReaches = [];
+    let reachCheckboxesInitialized = false;
 
     function setupDropdown(headers) {
       const dropdown = document.getElementById("gradeColumn");
@@ -110,8 +110,8 @@
     }
 
     function setupReachCheckboxes(reaches) {
-      if (JSON.stringify(reaches) === JSON.stringify(currentReaches)) return;
-      currentReaches = reaches;
+      if (reachCheckboxesInitialized) return;
+      reachCheckboxesInitialized = true;
       const container = document.getElementById("reachCheckboxes");
       container.innerHTML = "";
       reaches.sort().forEach(reach => {
@@ -120,12 +120,12 @@
         checkbox.type = "checkbox";
         checkbox.value = reach;
         checkbox.checked = true;
-        checkbox.addEventListener('change', () => updateGrades());
         label.appendChild(checkbox);
         label.append(` ${reach}`);
         container.appendChild(label);
         container.appendChild(document.createElement("br"));
       });
+      container.querySelectorAll('input').forEach(cb => cb.addEventListener('change', () => updateGrades()));
     }
 
     function updateGrades() {
