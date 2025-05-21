@@ -7,7 +7,6 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     #map { height: 100vh; }
-
     #searchBox, #gradeColumn, #updateButton {
       position: absolute;
       right: 20px;
@@ -18,18 +17,11 @@
       background: white;
       border: 1px solid #ccc;
     }
-
     #searchBox { top: 20px; }
     #gradeColumn { top: 60px; }
-    #updateButton {
-      top: 100px;
-      cursor: pointer;
-      background: #f0f0f0;
-    }
-
-    #gradeFilter {
+    #updateButton { top: 100px; cursor: pointer; background: #f0f0f0; }
+    #gradeFilter, #reachFilter {
       position: absolute;
-      top: 150px;
       right: 20px;
       z-index: 1001;
       background: white;
@@ -38,7 +30,8 @@
       font-family: Arial, sans-serif;
       font-size: 14px;
     }
-
+    #gradeFilter { top: 150px; }
+    #reachFilter { top: 330px; }
     .legend {
       position: absolute;
       bottom: 20px;
@@ -50,7 +43,6 @@
       font-size: 14px;
       z-index: 1000;
     }
-
     .legend i {
       width: 14px;
       height: 14px;
@@ -59,16 +51,13 @@
       margin-top: 2px;
       opacity: 0.8;
     }
-
     .legend div { clear: both; margin-bottom: 4px; }
   </style>
 </head>
 <body>
-
   <input type="text" id="searchBox" placeholder="Search Reach ID...">
   <select id="gradeColumn"></select>
   <button id="updateButton">Update Map</button>
-
   <div id="gradeFilter">
     <label><input type="checkbox" value="F" checked> F</label><br>
     <label><input type="checkbox" value="D" checked> D</label><br>
@@ -77,9 +66,11 @@
     <label><input type="checkbox" value="A" checked> A</label><br>
     <label><input type="checkbox" value="No Data" checked> No Data</label><br>
   </div>
-
+  <div id="reachFilter">
+    <strong>Filter by Reach:</strong><br>
+    <div id="reachCheckboxes"></div>
+  </div>
   <div id="map"></div>
-
   <div class="legend">
     <h4>Reach Grades</h4>
     <div><i style="background:red"></i> F – Non-Functional</div>
@@ -89,20 +80,10 @@
     <div><i style="background:green"></i> A – Optimally Functional</div>
     <div><i style="background:gray"></i> No Data</div>
   </div>
-
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
     const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vROJntSYDQdg2vU1VTlMy8E-qOsSe9wr5_JMj1n1ks2wonNsk-JippjXmzizJJ9_BfgwMzzBV0Af50h/pub?gid=61075690&single=true&output=csv";
-
-    const gradeColors = {
-      'F': 'red',
-      'D': 'orange',
-      'C': 'yellow',
-      'B': 'lightgreen',
-      'A': 'green',
-      'No Data': 'gray'
-    };
-
+    const gradeColors = { 'F': 'red', 'D': 'orange', 'C': 'yellow', 'B': 'lightgreen', 'A': 'green', 'No Data': 'gray' };
     let reachGrades = {};
     let geoLayer;
     let selectedColumn = "";
@@ -111,7 +92,6 @@
       const dropdown = document.getElementById("gradeColumn");
       const currentValue = dropdown.value;
       dropdown.innerHTML = "";
-
       for (let i = 2; i < headers.length; i++) {
         const col = headers[i];
         const opt = document.createElement("option");
@@ -119,14 +99,20 @@
         opt.textContent = col;
         dropdown.appendChild(opt);
       }
-
       dropdown.value = currentValue || dropdown.options[0].value;
       selectedColumn = dropdown.value;
+      dropdown.addEventListener("change", () => { selectedColumn = dropdown.value; updateGrades(); });
+    }
 
-      dropdown.addEventListener("change", () => {
-        selectedColumn = dropdown.value;
-        updateGrades();
+    function setupReachCheckboxes(reaches) {
+      const container = document.getElementById("reachCheckboxes");
+      container.innerHTML = "";
+      reaches.sort().forEach(reach => {
+        const label = document.createElement("label");
+        label.innerHTML = `<input type="checkbox" value="${reach}" checked> ${reach}<br>`;
+        container.appendChild(label);
       });
+      container.querySelectorAll('input').forEach(cb => cb.addEventListener('change', () => updateGrades()));
     }
 
     function updateGrades() {
@@ -137,35 +123,31 @@
           const headers = lines[0].split(",");
           const colIndex = headers.indexOf(selectedColumn);
           reachGrades = {};
-
+          let allReaches = new Set();
           for (const line of lines.slice(1)) {
             const cols = line.split(",");
             const reach_id = cols[1];
+            const reach = cols[0].trim();
             const raw = cols[colIndex]?.trim().toUpperCase();
             const grade = gradeColors.hasOwnProperty(raw) ? raw : "No Data";
-            reachGrades[reach_id] = grade;
+            reachGrades[reach_id] = { grade, reach };
+            allReaches.add(reach);
           }
-
+          setupReachCheckboxes(Array.from(allReaches));
           const activeGrades = Array.from(document.querySelectorAll('#gradeFilter input:checked')).map(cb => cb.value);
+          const activeReaches = Array.from(document.querySelectorAll('#reachFilter input:checked')).map(cb => cb.value);
 
           geoLayer.eachLayer(layer => {
             const id = layer.feature.properties.reach_id;
             const props = layer.feature.properties;
-            const grade = reachGrades[id];
+            const record = reachGrades[id] || {};
+            const grade = record.grade;
+            const reach = record.reach;
             const color = gradeColors[grade] || 'gray';
-
             layer.setStyle({ color, weight: 6 });
-
-            if (activeGrades.includes(grade)) {
+            if (activeGrades.includes(grade) && activeReaches.includes(reach)) {
               layer.addTo(map);
-
-              // Tooltip on hover
-              layer.bindTooltip(`Reach: ${props.reach_id}<br>${selectedColumn}: ${grade}`, {
-                sticky: true,
-                direction: 'top'
-              });
-
-              // Click popup
+              layer.bindTooltip(`Reach: ${props.reach_id}<br>${selectedColumn}: ${grade}`, { sticky: true, direction: 'top' });
               layer.bindPopup(`Reach ID: ${props.reach_id}<br>Grade: ${grade}`);
             } else {
               map.removeLayer(layer);
@@ -185,7 +167,7 @@
       .then(geojson => {
         geoLayer = L.geoJSON(geojson, {
           style: feature => {
-            const grade = reachGrades[feature.properties.reach_id];
+            const grade = (reachGrades[feature.properties.reach_id] || {}).grade;
             return { color: gradeColors[grade] || 'gray', weight: 6 };
           }
         }).addTo(map);
@@ -199,11 +181,8 @@
             geoLayer.eachLayer(layer => {
               const id = layer.feature.properties.reach_id.toLowerCase();
               const match = id.includes(query);
-              const grade = reachGrades[layer.feature.properties.reach_id];
-              layer.setStyle({
-                color: match ? 'blue' : (gradeColors[grade] || 'gray'),
-                weight: match ? 8 : 6
-              });
+              const grade = (reachGrades[layer.feature.properties.reach_id] || {}).grade;
+              layer.setStyle({ color: match ? 'blue' : (gradeColors[grade] || 'gray'), weight: match ? 8 : 6 });
               if (match) layer.openPopup();
             });
           });
@@ -222,9 +201,7 @@
         });
       });
 
-    document.getElementById("updateButton").addEventListener("click", () => {
-      updateGrades();
-    });
+    document.getElementById("updateButton").addEventListener("click", () => updateGrades());
   </script>
 </body>
 </html>
