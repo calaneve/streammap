@@ -81,9 +81,26 @@
 
   <div id="map"></div>
 
-  <div class="legend">
+  
+<div class="legend">
   <h4>Reach Grades</h4>
   <div><i style="background:red"></i> F – Non-Functional</div>
+  <div><i style="background:orange"></i> D – Impaired</div>
+  <div><i style="background:yellow"></i> C – Functional</div>
+  <div><i style="background:lightgreen"></i> B – Highly Functional</div>
+  <div><i style="background:green"></i> A – Optimally Functional</div>
+  <div><i style="background:gray"></i> No Data</div>
+  <h4>Subwatersheds (by group)</h4>
+  <div><i style="background:#08dd6d; opacity:0.5"></i> Colorado River Headwaters</div>
+  <div><i style="background:#ac49f9; opacity:0.5"></i> Colorado River Lower</div>
+  <div><i style="background:#3e77b2; opacity:0.5"></i> Colorado River Mid</div>
+  <div><i style="background:#f7a318; opacity:0.5"></i> Colorado River Upper</div>
+  <div><i style="background:#05a16f; opacity:0.5"></i> Fraser River Lower</div>
+  <div><i style="background:#b6e04c; opacity:0.5"></i> Fraser River Mid</div>
+  <div><i style="background:#e7402c; opacity:0.5"></i> Fraser River Upper</div>
+  <div><i style="background:purple; border: 1px solid #333;"></i> CEA Boundary</div>
+</div>
+
     <div><i style="background:orange"></i> D – Impaired</div>
     <div><i style="background:yellow"></i> C – Functional</div>
     <div><i style="background:lightgreen"></i> B – Highly Functional</div>
@@ -210,16 +227,32 @@
     });
 
     fetch("https://calaneve.github.io/streammap/LBD_CEA_Boundary.geojson").then(res => res.json()).then(data => {
-      ceaLayer = L.geoJSON(data, { style: { color: "purple", weight: 2, fillOpacity: 0.1 } }).addTo(map);
+      ceaLayer = L.geoJSON(data, { style: { color: "purple", weight: 2, fillOpacity: 0, fill: false } }).addTo(map);
     });
 
-    fetch("https://calaneve.github.io/streammap/StreamGroupSubwatersheds.geojson").then(res => res.json()).then(data => {
+    
+const groupColors = {
+  "Colorado River Headwaters": "#08dd6d",
+  "Colorado River Lower": "#ac49f9",
+  "Colorado River Mid": "#3e77b2",
+  "Colorado River Upper": "#f7a318",
+  "Fraser River Lower": "#05a16f",
+  "Fraser River Mid": "#b6e04c",
+  "Fraser River Upper": "#e7402c"
+};
+
+function getColor(group) {
+  return groupColors[group] || "#999999";
+}
+
+
+fetch("https://calaneve.github.io/streammap/StreamGroupSubwatersheds.geojson").then(res => res.json()).then(data => {
       subwatershedsLayer = L.geoJSON(data, {
         style: f => {
-          const name = f.properties.Subwatershed || "";
-          const color = subwatershedColors[name] || "#999";
-          return { color, fillColor: color, weight: 1, fillOpacity: 0.5 };
-        }
+  const group = f.properties.group || "";
+  const color = getColor(group);
+  return { color, fillColor: color, weight: 1, fillOpacity: 0.5 };
+}
       }).addTo(map);
     });
 
