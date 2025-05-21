@@ -31,7 +31,11 @@
       font-size: 14px;
     }
     #gradeFilter { top: 150px; }
-    #reachFilter { top: 330px; }
+    #reachFilter {
+      top: 330px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
     .legend {
       position: absolute;
       bottom: 20px;
@@ -68,7 +72,7 @@
   </div>
   <div id="reachFilter">
     <strong>Filter by Reach:</strong><br>
-    <div id="reachCheckboxes"></div>
+    <div id="reachCheckboxes">Loading reaches...</div>
   </div>
   <div id="map"></div>
   <div class="legend">
@@ -87,6 +91,7 @@
     let reachGrades = {};
     let geoLayer;
     let selectedColumn = "";
+    let currentReaches = [];
 
     function setupDropdown(headers) {
       const dropdown = document.getElementById("gradeColumn");
@@ -105,14 +110,22 @@
     }
 
     function setupReachCheckboxes(reaches) {
+      if (JSON.stringify(reaches) === JSON.stringify(currentReaches)) return;
+      currentReaches = reaches;
       const container = document.getElementById("reachCheckboxes");
       container.innerHTML = "";
       reaches.sort().forEach(reach => {
         const label = document.createElement("label");
-        label.innerHTML = `<input type="checkbox" value="${reach}" checked> ${reach}<br>`;
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.value = reach;
+        checkbox.checked = true;
+        checkbox.addEventListener('change', () => updateGrades());
+        label.appendChild(checkbox);
+        label.append(` ${reach}`);
         container.appendChild(label);
+        container.appendChild(document.createElement("br"));
       });
-      container.querySelectorAll('input').forEach(cb => cb.addEventListener('change', () => updateGrades()));
     }
 
     function updateGrades() {
