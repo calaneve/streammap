@@ -251,7 +251,7 @@ fetch("https://calaneve.github.io/streammap/StreamGroupSubwatersheds.geojson").t
         style: f => {
   const group = f.properties.group || "";
   const color = getColor(group);
-  return { color, fillColor: color, weight: 1, fillOpacity: 0.5 };
+  return { color, fillColor: color, weight: 1, fillOpacity: 0.2 };
 }
       }).addTo(map);
     });
