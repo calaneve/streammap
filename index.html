@@ -103,10 +103,7 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vROJntSYDQdg2vU1VTlMy8E-qOsSe9wr5_JMj1n1ks2wonNsk-JippjXmzizJJ9_BfgwMzzBV0Af50h/pub?gid=61075690&single=true&output=csv";
-    const gradeColors = { 'F': 'red', 'D': 'orange', 'C': 'yellow', 'B': 'lightgreen', 'A': 'green', 'No Data': 'gray' };
 
-    
 let map = L.map('map').setView([40.1, -105.87], 13);
 
 // Define multiple basemap layers
@@ -126,17 +123,14 @@ const basemaps = {
   })
 };
 
-// Add the default basemap (OpenTopoMap)
+// Add the default basemap (OpenTopoMap / Terrain)
 basemaps["Terrain"].addTo(map);
 
-// Add basemap selector control
+// Add basemap selector control to the top left
 L.control.layers(basemaps, null, { position: 'topleft' }).addTo(map);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 18,
-      attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
-
+const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vROJntSYDQdg2vU1VTlMy8E-qOsSe9wr5_JMj1n1ks2wonNsk-JippjXmzizJJ9_BfgwMzzBV0Af50h/pub?gid=61075690&single=true&output=csv";
+    const gradeColors = { 'F': 'red', 'D': 'orange', 'C': 'yellow', 'B': 'lightgreen', 'A': 'green', 'No Data': 'gray' };
     let geoLayer, ceaLayer, subwatershedsLayer;
     let reachGrades = {};
     let selectedColumn = "";
@@ -223,27 +217,6 @@ headers.forEach((header, i) => {
 
     fetch("https://calaneve.github.io/streammap/LBD_ReachCharacterization_GCSWGS84.geojson").then(res => res.json()).then(data => {
       geoLayer = L.geoJSON(data, {
-  style: f => ({ color: gradeColors[(reachGrades[f.properties.reach_id] || {}).grade] || 'gray', weight: 6 }),
-  onEachFeature: (feature, layer) => {
-    layer.on("click", () => {
-      const props = feature.properties;
-      const reach_id = props.reach_id;
-      const record = reachGrades[reach_id];
-      if (!record) return;
-
-      let gradeTable = '<table border="1" cellpadding="4" style="font-size:13px"><thead><tr><th>Parameter</th><th>Grade</th></tr></thead><tbody>';
-      for (const [key, val] of Object.entries(record)) {
-        if (["reach", "color"].includes(key)) continue;
-        gradeTable += `<tr><td>${key}</td><td>${val}</td></tr>`;
-      }
-      gradeTable += "</tbody></table>";
-
-      layer.bindPopup(
-        `<strong>Reach:</strong> ${record.reach}<br><strong>ID:</strong> ${reach_id}<br><br>${gradeTable}`
-      ).openPopup();
-    });
-  }
-}).addTo(map);
         style: f => ({ color: gradeColors[(reachGrades[f.properties.reach_id] || {}).grade] || 'gray', weight: 6 })
       }).addTo(map);
       const bounds = geoLayer.getBounds();
