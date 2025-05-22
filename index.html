@@ -181,7 +181,8 @@ L.control.layers(basemaps, null, { position: 'topleft' }).addTo(map);
           const cols = line.split(",");
           const reach = cols[0].trim();
           const reach_id = cols[1].trim();
-          const grade = (cols[colIndex] || "").trim().toUpperCase();
+          let grade = (cols[colIndex] || "").trim().toUpperCase();
+          if (!gradeColors[grade]) grade = "No Data";
           reachGrades[reach_id] = {
   grade,
   color: gradeColors[grade] || 'gray',
@@ -262,6 +263,20 @@ fetch("https://calaneve.github.io/streammap/StreamGroupSubwatersheds.geojson").t
     });
 
     document.getElementById("updateButton").addEventListener("click", updateGrades);
+    document.getElementById("searchBox").addEventListener("input", function () {
+  const query = this.value.trim().toLowerCase();
+  geoLayer.eachLayer(layer => {
+    const id = layer.feature.properties.reach_id || "";
+    const match = id.toLowerCase().includes(query);
+    layer.setStyle({ weight: match ? 8 : 6 });
+    if (match) {
+      layer.openTooltip();
+    } else {
+      layer.closeTooltip();
+    }
+  });
+});
+
   </script>
 </body>
 </html>
