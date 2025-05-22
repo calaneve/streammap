@@ -198,6 +198,10 @@
         const headers = csv.split("\n")[0].split(",");
         setupDropdown(headers);
         updateGrades();
+        document.querySelectorAll('#gradeFilter input[type="checkbox"]').forEach(cb => {
+  cb.addEventListener('change', () => updateGrades());
+        });
+
       });
     });
 
