@@ -106,10 +106,28 @@
     const gradeColors = { 'F': 'red', 'D': 'orange', 'C': 'yellow', 'B': 'lightgreen', 'A': 'green', 'No Data': 'gray' };
 
     let map = L.map('map').setView([40.1, -105.87], 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 18,
-      attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
+// Define multiple basemap layers
+const basemaps = {
+  "OpenStreetMap": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '© OpenStreetMap contributors'
+  }),
+  "Satellite": L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+    maxZoom: 20,
+    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+    attribution: '© Google Satellite'
+  }),
+  "Terrain": L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+    maxZoom: 17,
+    attribution: '© OpenTopoMap'
+  })
+};
+
+// Add default layer to map
+basemaps["Terrain"].addTo(map);
+
+// Add basemap selector control
+L.control.layers(basemaps, null, { position: 'topleft' }).addTo(map);
 
     let geoLayer, ceaLayer, subwatershedsLayer;
     let reachGrades = {};
