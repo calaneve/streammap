@@ -186,6 +186,7 @@ const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vROJntSYDQdg2vU1
           const grade = (cols[colIndex] || "").trim().toUpperCase();
           reachGrades[reach_id] = {
   reach,
+  grade,
   color: gradeColors[grade] || 'gray'
 };
 headers.forEach((header, i) => {
@@ -217,7 +218,10 @@ headers.forEach((header, i) => {
 
     fetch("https://calaneve.github.io/streammap/LBD_ReachCharacterization_GCSWGS84.geojson").then(res => res.json()).then(data => {
       geoLayer = L.geoJSON(data, {
-        style: f => ({ color: gradeColors[(reachGrades[f.properties.reach_id] || {}).grade] || 'gray', weight: 6 })
+        style: f => {
+  const record = reachGrades[f.properties.reach_id] || {};
+  return { color: record.color || "gray", weight: 6 };
+}
       }).addTo(map);
       const bounds = geoLayer.getBounds();
       if (bounds.isValid()) map.fitBounds(bounds, { padding: [20, 20] });
