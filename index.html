@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -165,7 +164,11 @@
           const reach = cols[0].trim();
           const reach_id = cols[1].trim();
           const grade = (cols[colIndex] || "").trim().toUpperCase();
-          reachGrades[reach_id] = { grade: gradeColors[grade] ? grade : "No Data", reach };
+          reachGrades[reach_id] = {
+  grade,
+  color: gradeColors[grade] || 'gray',
+  reach
+};
           allReaches.add(reach);
         }
         setupReachCheckboxes([...allReaches]);
@@ -177,7 +180,7 @@
           const record = reachGrades[id] || {};
           const grade = record.grade;
           const reach = record.reach;
-          const color = gradeColors[grade] || 'gray';
+          const color = record.color;
           layer.setStyle({ color, weight: 6 });
           if (activeGrades.includes(grade) && activeReaches.includes(reach)) {
             layer.addTo(map);
@@ -244,3 +247,4 @@ fetch("https://calaneve.github.io/streammap/StreamGroupSubwatersheds.geojson").t
   </script>
 </body>
 </html>
+
