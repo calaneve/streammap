@@ -124,7 +124,7 @@ const basemaps = {
 };
 
 // Add default layer to map
-basemaps["OpenStreetMap"].addTo(map);
+basemaps["Terrain"].addTo(map);
 
 // Add basemap selector control
 L.control.layers(basemaps, null, { position: 'topleft' }).addTo(map);
@@ -210,27 +210,9 @@ L.control.layers(basemaps, null, { position: 'topleft' }).addTo(map);
     }
 
     fetch("https://calaneve.github.io/streammap/LBD_ReachCharacterization_GCSWGS84.geojson").then(res => res.json()).then(data => {
-geoLayer = L.geoJSON(data, {
-  style: f => {
-    const record = reachGrades[f.properties.reach_id] || {};
-    return { color: record.color || 'gray', weight: 6 };
-  },
-  onEachFeature: (feature, layer) => {
-    layer.on("mouseover", function () {
-      const id = feature.properties.reach_id;
-      const record = reachGrades[id];
-      if (!record) return;
-      const param = selectedColumn;
-      const grade = record.grade || "No Data";
-      const popupContent = `<strong>Reach ID:</strong> ${id}<br><strong>Parameter:</strong> ${param}<br><strong>Grade:</strong> ${grade}`;
-      layer.bindTooltip(popupContent, { sticky: true }).openTooltip();
-    });
-    layer.on("mouseout", function () {
-      layer.closeTooltip();
-    });
-  }
-}).addTo(map);
-
+      geoLayer = L.geoJSON(data, {
+        style: f => ({ color: gradeColors[(reachGrades[f.properties.reach_id] || {}).grade] || 'gray', weight: 6 })
+      }).addTo(map);
       const bounds = geoLayer.getBounds();
       if (bounds.isValid()) map.fitBounds(bounds, { padding: [20, 20] });
       fetch(csvUrl).then(r => r.text()).then(csv => {
@@ -283,3 +265,6 @@ fetch("https://calaneve.github.io/streammap/StreamGroupSubwatersheds.geojson").t
   </script>
 </body>
 </html>
+
+
+
