@@ -101,35 +101,10 @@
   <div><i style="background:purple; border: 1px solid #333;"></i> CEA Boundary</div>
 </div>
 
-    <div><i style="background:orange"></i> D – Impaired</div>
-    <div><i style="background:yellow"></i> C – Functional</div>
-    <div><i style="background:lightgreen"></i> B – Highly Functional</div>
-    <div><i style="background:green"></i> A – Optimally Functional</div>
-    <div><i style="background:gray"></i> No Data</div>
-    <h4>Subwatersheds</h4>
-    <div><i style="background:#1f78b4; opacity:0.5"></i> North Fork</div>
-    <div><i style="background:#33a02c; opacity:0.5"></i> Middle Fork</div>
-    <div><i style="background:#e31a1c; opacity:0.5"></i> South Fork</div>
-    <div><i style="background:#ff7f00; opacity:0.5"></i> Boulder Creek</div>
-    <div><i style="background:#6a3d9a; opacity:0.5"></i> St. Vrain Creek</div>
-    <div><i style="background:#b15928; opacity:0.5"></i> Left Hand Creek</div>
-    <div><i style="background:#a6cee3; opacity:0.5"></i> Fourmile Creek</div>
-    <div><i style="background:purple; border: 1px solid #333;"></i> CEA Boundary</div>
-  </div>
-
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
     const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vROJntSYDQdg2vU1VTlMy8E-qOsSe9wr5_JMj1n1ks2wonNsk-JippjXmzizJJ9_BfgwMzzBV0Af50h/pub?gid=61075690&single=true&output=csv";
     const gradeColors = { 'F': 'red', 'D': 'orange', 'C': 'yellow', 'B': 'lightgreen', 'A': 'green', 'No Data': 'gray' };
-    const subwatershedColors = {
-      "North Fork": "#1f78b4",
-      "Middle Fork": "#33a02c",
-      "South Fork": "#e31a1c",
-      "Boulder Creek": "#ff7f00",
-      "St. Vrain Creek": "#6a3d9a",
-      "Left Hand Creek": "#b15928",
-      "Fourmile Creek": "#a6cee3"
-    };
 
     let map = L.map('map').setView([40.1, -105.87], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
