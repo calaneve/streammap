@@ -75,7 +75,7 @@
   </div>
 
   <div id="layerToggle">
-    <label><input type="checkbox" id="toggleSubwatersheds" checked> Show Subwatersheds</label>
+    <label><input type="checkbox" id="toggleSubwatersheds"> Show Subwatersheds</label>
   </div>
 
   <div id="map"></div>
@@ -265,14 +265,13 @@ function getColor(group) {
 
 
 fetch("https://calaneve.github.io/streammap/StreamGroupSubwatersheds.geojson").then(res => res.json()).then(data => {
-      subwatershedsLayer = L.geoJSON(data, {
-        style: f => {
-  const group = f.properties.group || "";
-  const color = getColor(group);
-  return { color, fillColor: color, weight: 1, fillOpacity: 0.2 };
-}
-      }).addTo(map);
-    });
+subwatershedsLayer = L.geoJSON(data, {
+  style: f => {
+    const group = f.properties.group || "";
+    const color = getColor(group);
+    return { color, fillColor: color, weight: 1, fillOpacity: 0.2 };
+  }
+}); // Do NOT add to map yet
 
     document.getElementById("toggleSubwatersheds").addEventListener("change", function () {
       if (this.checked) subwatershedsLayer.addTo(map);
