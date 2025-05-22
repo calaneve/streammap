@@ -182,12 +182,14 @@ L.control.layers(basemaps, null, { position: 'topleft' }).addTo(map);
           const reach = cols[0].trim();
           const reach_id = cols[1].trim();
           let grade = (cols[colIndex] || "").trim().toUpperCase();
-          if (!gradeColors[grade]) grade = "No Data";
-          reachGrades[reach_id] = {
-  grade,
-  color: gradeColors[grade] || 'gray',
-  reach
-};
+if (!gradeColors[grade]) grade = "No Data";
+
+if (!reachGrades[reach_id]) {
+  reachGrades[reach_id] = { reach };
+}
+reachGrades[reach_id][headers[colIndex]] = grade;
+reachGrades[reach_id].color = gradeColors[grade] || 'gray';
+reachGrades[reach_id].grade = grade;  // optional for backward compatibility
           allReaches.add(reach);
         }
         setupReachCheckboxes([...allReaches]);
