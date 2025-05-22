@@ -124,7 +124,7 @@ const basemaps = {
 };
 
 // Add the default basemap (OpenTopoMap / Terrain)
-basemaps["Terrain"].addTo(map);
+basemaps["OpenStreetMap"].addTo(map);
 
 // Add basemap selector control to the top left
 L.control.layers(basemaps, null, { position: 'topleft' }).addTo(map);
@@ -225,6 +225,9 @@ headers.forEach((header, i) => {
         const headers = csv.split("\n")[0].split(",");
         setupDropdown(headers);
         updateGrades();
+        geoLayer.addTo(map);
+        const bounds = geoLayer.getBounds();
+        if (bounds.isValid()) map.fitBounds(bounds, { padding: [20, 20] });
         document.querySelectorAll('#gradeFilter input[type="checkbox"]').forEach(cb => {
   cb.addEventListener('change', () => updateGrades());
         });
