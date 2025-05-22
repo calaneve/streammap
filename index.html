@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -126,7 +127,7 @@ const basemaps = {
 };
 
 // Add the default basemap (OpenTopoMap)
-basemaps["OpenStreetMap"].addTo(map);
+basemaps["Terrain"].addTo(map);
 
 // Add basemap selector control
 L.control.layers(basemaps, null, { position: 'topleft' }).addTo(map);
@@ -190,10 +191,14 @@ L.control.layers(basemaps, null, { position: 'topleft' }).addTo(map);
           const reach_id = cols[1].trim();
           const grade = (cols[colIndex] || "").trim().toUpperCase();
           reachGrades[reach_id] = {
-  grade,
-  color: gradeColors[grade] || 'gray',
-  reach
+  reach,
+  color: gradeColors[grade] || 'gray'
 };
+headers.forEach((header, i) => {
+  if (i >= 2) {
+    reachGrades[reach_id][header] = cols[i] || "No Data";
+  }
+});
           allReaches.add(reach);
         }
         setupReachCheckboxes([...allReaches]);
@@ -293,4 +298,3 @@ fetch("https://calaneve.github.io/streammap/StreamGroupSubwatersheds.geojson").t
   </script>
 </body>
 </html>
-
