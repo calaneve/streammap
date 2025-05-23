@@ -216,12 +216,13 @@ L.control.layers(basemaps, null, { position: 'topleft' }).addTo(map);
       layer.setStyle({ color, weight: 6 });
       if (activeGrades.includes(grade) && activeReaches.includes(reach)) {
         layer.addTo(map);
+         geoLayer.bringToFront(); // <== AND HERE
       } else {
         map.removeLayer(layer);
       }
     });
   });
-     geoLayer.bringToFront(); // <== AND HERE
+    
 }
     fetch("https://calaneve.github.io/streammap/LBD_ReachCharacterization_GCSWGS84.geojson").then(res => res.json()).then(data => {
 geoLayer = L.geoJSON(data, {
