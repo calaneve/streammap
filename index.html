@@ -170,48 +170,58 @@ L.control.layers(basemaps, null, { position: 'topleft' }).addTo(map);
       });
     }
 
-    function updateGrades() {
-      fetch(csvUrl).then(r => r.text()).then(csv => {
-        const lines = csv.trim().split("\n");
-        const headers = lines[0].split(",");
-        const colIndex = headers.indexOf(selectedColumn);
-        reachGrades = {};
-        let allReaches = new Set();
-        for (const line of lines.slice(1)) {
-          const cols = line.split(",");
-          const reach = cols[0].trim();
-          const reach_id = cols[1].trim();
-          let grade = (cols[colIndex] || "").trim().toUpperCase();
-if (!gradeColors[grade]) grade = "No Data";
+   function updateGrades() {
+  fetch(csvUrl).then(r => r.text()).then(csv => {
+    const lines = csv.trim().split("\n");
+    const headers = lines[0].split(",");
+    reachGrades = {};
+    let allReaches = new Set();
 
-if (!reachGrades[reach_id]) {
-  reachGrades[reach_id] = { reach };
-}
-reachGrades[reach_id][headers[colIndex]] = grade;
-reachGrades[reach_id].color = gradeColors[grade] || 'gray';
-reachGrades[reach_id].grade = grade;  // optional for backward compatibility
-          allReaches.add(reach);
-        }
-        setupReachCheckboxes([...allReaches]);
-        if (!geoLayer) return;
-        const activeGrades = [...document.querySelectorAll('#gradeFilter input:checked')].map(cb => cb.value);
-        const activeReaches = [...document.querySelectorAll('#reachFilter input:checked')].map(cb => cb.value);
-        geoLayer.eachLayer(layer => {
-          const id = layer.feature.properties.reach_id;
-          const record = reachGrades[id] || {};
-          const grade = record.grade;
-          const reach = record.reach;
-          const color = record.color;
-          layer.setStyle({ color, weight: 6 });
-          if (activeGrades.includes(grade) && activeReaches.includes(reach)) {
-            layer.addTo(map);
-          } else {
-            map.removeLayer(layer);
-          }
-        });
-      });
+    for (const line of lines.slice(1)) {
+      const cols = line.split(",");
+      const reach = cols[0].trim();
+      const reach_id = cols[1].trim();
+      if (!reachGrades[reach_id]) {
+        reachGrades[reach_id] = { reach };
+      }
+
+      // Save all parameters
+      for (let i = 2; i < headers.length; i++) {
+        let g = (cols[i] || "").trim().toUpperCase();
+        if (!gradeColors[g]) g = "No Data";
+        reachGrades[reach_id][headers[i]] = g;
+      }
+
+      // Assign color and grade based on selected column
+      const colIndex = headers.indexOf(selectedColumn);
+      let selectedGrade = (cols[colIndex] || "").trim().toUpperCase();
+      if (!gradeColors[selectedGrade]) selectedGrade = "No Data";
+      reachGrades[reach_id].color = gradeColors[selectedGrade];
+      reachGrades[reach_id].grade = selectedGrade;
+
+      allReaches.add(reach);
     }
 
+    setupReachCheckboxes([...allReaches]);
+    if (!geoLayer) return;
+
+    const activeGrades = [...document.querySelectorAll('#gradeFilter input:checked')].map(cb => cb.value);
+    const activeReaches = [...document.querySelectorAll('#reachFilter input:checked')].map(cb => cb.value);
+    geoLayer.eachLayer(layer => {
+      const id = layer.feature.properties.reach_id;
+      const record = reachGrades[id] || {};
+      const grade = record.grade;
+      const reach = record.reach;
+      const color = record.color;
+      layer.setStyle({ color, weight: 6 });
+      if (activeGrades.includes(grade) && activeReaches.includes(reach)) {
+        layer.addTo(map);
+      } else {
+        map.removeLayer(layer);
+      }
+    });
+  });
+}
     fetch("https://calaneve.github.io/streammap/LBD_ReachCharacterization_GCSWGS84.geojson").then(res => res.json()).then(data => {
 geoLayer = L.geoJSON(data, {
   style: f => {
@@ -223,15 +233,20 @@ layer.on("mouseover", function () {
   const id = feature.properties.reach_id;
   const record = reachGrades[id];
   if (!record) return;
-  let popupContent = `<strong>Reach ID:</strong> ${id}<br><strong>Grades:</strong><ul>`;
+
+  let popupContent = `<strong>Reach ID: ${id}</strong><br><table style="border-collapse: collapse;">`;
   for (const key in record) {
     if (key !== "reach" && key !== "color" && key !== "grade") {
-      popupContent += `<li>${key}: ${record[key]}</li>`;
+      const grade = record[key];
+      const highlight = (key === selectedColumn) ? "<strong>" + grade + "</strong>" : grade;
+      popupContent += `<tr><td style="padding: 2px 6px;">${key}</td><td style="padding: 2px 6px;">=</td><td style="padding: 2px 6px;">${highlight}</td></tr>`;
     }
   }
-  popupContent += `</ul>`;
+  popupContent += `</table>`;
+
   layer.bindTooltip(popupContent, { sticky: true }).openTooltip();
 });
+
 
     layer.on("mouseout", function () {
       layer.closeTooltip();
