@@ -75,7 +75,7 @@
   </div>
 
   <div id="layerToggle">
-    <label><input type="checkbox" id="toggleSubwatersheds" checked> Show Subwatersheds</label>
+    <label><input type="checkbox" id="toggleSubwatersheds"> Show Subwatersheds</label>
   </div>
 
   <div id="map"></div>
@@ -238,7 +238,9 @@ layer.on("mouseover", function () {
   for (const key in record) {
     if (key !== "reach" && key !== "color" && key !== "grade") {
       const grade = record[key];
-      const highlight = (key === selectedColumn) ? "<strong>" + grade + "</strong>" : grade;
+      const highlight = (key === selectedColumn)
+  ? `<strong style="color:blue;">${grade}</strong>`
+  : grade;
       popupContent += `<tr><td style="padding: 2px 6px;">${key}</td><td style="padding: 2px 6px;">=</td><td style="padding: 2px 6px;">${highlight}</td></tr>`;
     }
   }
@@ -293,7 +295,6 @@ fetch("https://calaneve.github.io/streammap/StreamGroupSubwatersheds.geojson").t
   const color = getColor(group);
   return { color, fillColor: color, weight: 1, fillOpacity: 0.2 };
 }
-      }).addTo(map);
     });
 
     document.getElementById("toggleSubwatersheds").addEventListener("change", function () {
