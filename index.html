@@ -219,15 +219,20 @@ geoLayer = L.geoJSON(data, {
     return { color: record.color || 'gray', weight: 6 };
   },
   onEachFeature: (feature, layer) => {
-    layer.on("mouseover", function () {
-      const id = feature.properties.reach_id;
-      const record = reachGrades[id];
-      if (!record) return;
-      const param = selectedColumn;
-      const grade = record[param] || "No Data";
-      const popupContent = `<strong>Reach ID:</strong> ${id}<br><strong>Parameter:</strong> ${param}<br><strong>Grade:</strong> ${grade}`;
-      layer.bindTooltip(popupContent, { sticky: true }).openTooltip();
-    });
+layer.on("mouseover", function () {
+  const id = feature.properties.reach_id;
+  const record = reachGrades[id];
+  if (!record) return;
+  let popupContent = `<strong>Reach ID:</strong> ${id}<br><strong>Grades:</strong><ul>`;
+  for (const key in record) {
+    if (key !== "reach" && key !== "color" && key !== "grade") {
+      popupContent += `<li>${key}: ${record[key]}</li>`;
+    }
+  }
+  popupContent += `</ul>`;
+  layer.bindTooltip(popupContent, { sticky: true }).openTooltip();
+});
+
     layer.on("mouseout", function () {
       layer.closeTooltip();
     });
