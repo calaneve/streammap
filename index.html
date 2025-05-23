@@ -236,17 +236,18 @@ layer.on("mouseover", function () {
   const record = reachGrades[id];
   if (!record) return;
 
-  let popupContent = `<strong>Reach ID: ${id}</strong><br><table style="border-collapse: collapse;">`;
-  for (const key in record) {
-    if (key !== "reach" && key !== "color" && key !== "grade") {
-      const grade = record[key];
-      const highlight = (key === selectedColumn)
-  ? `<strong style="color:blue;">${grade}</strong>`
-  : grade;
-      popupContent += `<tr><td style="padding: 2px 6px;">${key}</td><td style="padding: 2px 6px;">=</td><td style="padding: 2px 6px;">${highlight}</td></tr>`;
-    }
+let popupContent = `<strong>Reach ID: ${id}</strong><br><table style="border-collapse: collapse;">`;
+for (const key in record) {
+  if (key !== "reach" && key !== "color" && key !== "grade") {
+    const grade = record[key];
+    const isSelected = key === selectedColumn;
+    const keyStyled = isSelected ? `<strong style="color:blue;">${key}</strong>` : key;
+    const gradeStyled = isSelected ? `<strong style="color:blue;">${grade}</strong>` : grade;
+    popupContent += `<tr><td style="padding: 2px 6px;">${keyStyled}</td><td style="padding: 2px 6px;">=</td><td style="padding: 2px 6px;">${gradeStyled}</td></tr>`;
   }
-  popupContent += `</table>`;
+}
+popupContent += `</table>`;
+
 
   layer.bindTooltip(popupContent, { sticky: true }).openTooltip();
 });
