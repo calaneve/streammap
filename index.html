@@ -116,21 +116,27 @@
     const hideLoading = () => document.getElementById("loadingIndicator").style.display = "none";
 
     function setupDropdown(headers) {
-      const dropdown = document.getElementById("gradeColumn");
-      dropdown.innerHTML = "";
-      for (let i = 2; i < headers.length; i++) {
-        const opt = document.createElement("option");
-        opt.value = opt.textContent = headers[i];
-        dropdown.appendChild(opt);
-      }
-      selectedColumn = dropdown.options[0].value;
-      dropdown.value = selectedColumn;
-      dropdown.addEventListener("change", () => {
-        selectedColumn = dropdown.value;
-        showLoading();
-        reloadGeoLayer();
-        hideLoading();
-      });
+  const dropdown = document.getElementById("gradeColumn");
+  dropdown.innerHTML = "";
+  for (let i = 2; i < headers.length; i++) {
+    const opt = document.createElement("option");
+    opt.value = opt.textContent = headers[i];
+    dropdown.appendChild(opt);
+  }
+  // Only set selectedColumn if not already selected
+  if (!selectedColumn || !headers.includes(selectedColumn)) {
+    selectedColumn = dropdown.options[0].value;
+    dropdown.value = selectedColumn;
+  } else {
+    dropdown.value = selectedColumn;
+  }
+  dropdown.addEventListener("change", () => {
+    selectedColumn = dropdown.value;
+    showLoading();
+    reloadGeoLayer();
+    hideLoading();
+  });
+}
     }
 
     function setupReachCheckboxes(reaches) {
@@ -181,14 +187,38 @@
         });
 
         setupReachCheckboxes([...allReaches]);
+
+        // Add change listeners to reapply filters
+        document.querySelectorAll('#gradeFilter input[type="checkbox"]').forEach(cb => {
+          cb.addEventListener('change', () => {
+            showLoading();
+            reloadGeoLayer();
+            hideLoading();
+          });
+        });
+        document.querySelectorAll('#reachFilter input[type="checkbox"]').forEach(cb => {
+          cb.addEventListener('change', () => {
+            showLoading();
+            reloadGeoLayer();
+            hideLoading();
+          });
+        });
       });
     }
 
     function reloadGeoLayer() {
-      fetch(geoJsonUrl).then(res => res.json()).then(data => {
-        if (geoLayer) map.removeLayer(geoLayer);
+  const activeGrades = [...document.querySelectorAll('#gradeFilter input:checked')].map(cb => cb.value);
+  const activeReaches = [...document.querySelectorAll('#reachFilter input:checked')].map(cb => cb.value);
 
-        geoLayer = L.geoJSON(data, {
+  fetch(geoJsonUrl).then(res => res.json()).then(data => {
+    if (geoLayer) map.removeLayer(geoLayer);
+
+    geoLayer = L.geoJSON(data, {
+      filter: feature => {
+        const id = feature.properties.reach_id;
+        const record = reachGrades[id];
+        return record && activeGrades.includes(record.grade) && activeReaches.includes(record.reach);
+      },
           style: f => {
             const record = reachGrades[f.properties.reach_id] || {};
             return { color: record.color || 'gray', weight: 6 };
@@ -270,13 +300,34 @@
     });
 
     document.getElementById("searchBox").addEventListener("input", function () {
-      const query = this.value.trim().toLowerCase();
-      geoLayer.eachLayer(layer => {
-        const id = layer.feature.properties.reach_id || "";
-        const match = id.toLowerCase().includes(query);
-        const record = reachGrades[id] || {};
-        const originalColor = record.color || "gray";
-        layer.setStyle({ color: match ? 'blue' : originalColor, weight: match ? 8 : 6 });
+  const query = this.value.trim().toLowerCase();
+
+  const activeGrades = [...document.querySelectorAll('#gradeFilter input:checked')].map(cb => cb.value);
+  const activeReaches = [...document.querySelectorAll('#reachFilter input:checked')].map(cb => cb.value);
+
+  geoLayer.eachLayer(layer => {
+    const id = layer.feature.properties.reach_id || "";
+    const record = reachGrades[id] || {};
+    const reach = record.reach;
+    const grade = record.grade;
+    const originalColor = record.color || "gray";
+    const match = id.toLowerCase().includes(query);
+
+    const isVisible = (query === "" || match) && activeGrades.includes(grade) && activeReaches.includes(reach);
+
+    if (isVisible) {
+      layer.setStyle({ color: match ? 'blue' : originalColor, weight: match ? 8 : 6 });
+      layer.addTo(map);
+      if (match && query !== "") layer.openTooltip();
+    } else {
+      map.removeLayer(layer);
+    }
+
+    if (!match || query === "") {
+      layer.closeTooltip();
+    }
+  });
+});
         if (match && query !== "") layer.openTooltip();
         else layer.closeTooltip();
       });
@@ -290,6 +341,7 @@
   </script>
 </body>
 </html>
+
 
 
 
