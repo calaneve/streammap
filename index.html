@@ -195,7 +195,7 @@ dropdown.addEventListener("change", () => {
   selectedColumn = document.getElementById("gradeColumn").value;
      
  fetch(csvUrl + "?t=" + Date.now()).then(r => r.text()).then(csv => {
-   console.log("CSV content:", csv.slice(0, 300));  // Debug the fetched content
+   //console.log("CSV content:", csv.slice(0, 300));  // Debug the fetched content
     const lines = csv.trim().split("\n");
     const headers = lines[0].split(",");
     reachGrades = {};
