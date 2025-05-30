@@ -214,30 +214,30 @@
     if (geoLayer) map.removeLayer(geoLayer);
 
     geoLayer = L.geoJSON(data, {
-      style: f => {
-        const record = reachGrades[f.properties.reach_id] || {};
-        return { color: record.color || 'gray', weight: 6 };
-      },
-      onEachFeature: (feature, layer) => {
-        layer.on("mouseover", () => {
-          const id = feature.properties.reach_id;
-          const record = reachGrades[id];
-          if (!record) return;
-          let popupContent = `<strong>Reach ID: ${id}</strong><br><table>`;
-          for (const key in record) {
-            if (!['reach', 'color', 'grade'].includes(key)) {
-              const grade = record[key];
-              const keyStyled = key === selectedColumn ? `<strong style=\"color:blue;\">${key}</strong>` : key;
-              const gradeStyled = key === selectedColumn ? `<strong style=\"color:blue;\">${grade}</strong>` : grade;
-              popupContent += `<tr><td>${keyStyled}</td><td>=</td><td>${gradeStyled}</td></tr>`;
-            }
-          }
-          popupContent += `</table>`;
-          layer.bindTooltip(popupContent, { sticky: true }).openTooltip();
-        });
-        layer.on("mouseout", () => layer.closeTooltip());
+  style: f => {
+    const record = reachGrades[f.properties.reach_id] || {};
+    return { color: record.color || 'gray', weight: 6 };
+  },
+  onEachFeature: (feature, layer) => {
+    layer.on("mouseover", () => {
+      const id = feature.properties.reach_id;
+      const record = reachGrades[id];
+      if (!record) return;
+      let popupContent = `<strong>Reach ID: ${id}</strong><br><table>`;
+      for (const key in record) {
+        if (!['reach', 'color', 'grade'].includes(key)) {
+          const grade = record[key];
+          const keyStyled = key === selectedColumn ? `<strong style=\"color:blue;\">${key}</strong>` : key;
+          const gradeStyled = key === selectedColumn ? `<strong style=\"color:blue;\">${grade}</strong>` : grade;
+          popupContent += `<tr><td>${keyStyled}</td><td>=</td><td>${gradeStyled}</td></tr>`;
+        }
       }
-    }).addTo(map);
+      popupContent += `</table>`;
+      layer.bindTooltip(popupContent, { sticky: true });
+    });
+    layer.on("mouseout", () => layer.closeTooltip());
+  }
+}).addTo(map);
 
     geoLayer.eachLayer(layer => {
       const id = layer.feature.properties.reach_id;
@@ -340,8 +340,6 @@
   </script>
 </body>
 </html>
-
-
 
 
 
