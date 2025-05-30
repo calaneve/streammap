@@ -149,26 +149,25 @@ L.control.layers(basemaps, null, { position: 'topleft' }).addTo(map);
 });
     }
 
-    function setupReachCheckboxes(reaches) {
-      if (reachCheckboxesInitialized) return;
-      reachCheckboxesInitialized = true;
-      const container = document.getElementById("reachCheckboxes");
-      container.innerHTML = "";
-      reaches.sort().forEach(reach => {
-        const checkbox = document.createElement("input");
-        checkbox.type = "checkbox";
-        checkbox.value = reach;
-        checkbox.checked = true;
-        const label = document.createElement("label");
-        label.appendChild(checkbox);
-        label.append(" " + reach);
-        container.appendChild(label);
-        container.appendChild(document.createElement("br"));
-      });
-      container.querySelectorAll("input").forEach(cb => {
-        cb.addEventListener("change", () => updateGrades());
-      });
-    }
+function setupReachCheckboxes(reaches) {
+  const container = document.getElementById("reachCheckboxes");
+  container.innerHTML = "";
+  reaches.sort().forEach(reach => {
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.value = reach;
+    checkbox.checked = true;
+    const label = document.createElement("label");
+    label.appendChild(checkbox);
+    label.append(" " + reach);
+    container.appendChild(label);
+    container.appendChild(document.createElement("br"));
+  });
+  container.querySelectorAll("input").forEach(cb => {
+    cb.addEventListener("change", () => updateGrades());
+  });
+}
+
 
   function updateGrades() {
   // Fetch the latest CSV data with a timestamp to prevent caching
@@ -213,8 +212,11 @@ L.control.layers(basemaps, null, { position: 'topleft' }).addTo(map);
 
       if (!geoLayer) return;
 
-      const activeGrades = [...document.querySelectorAll('#gradeFilter input:checked')].map(cb => cb.value);
-      const activeReaches = [...document.querySelectorAll('#reachFilter input:checked')].map(cb => cb.value);
+     const activeGrades = [...document.querySelectorAll('#gradeFilter input:checked')].map(cb => cb.value);
+let activeReaches = [...document.querySelectorAll('#reachFilter input:checked')].map(cb => cb.value);
+if (activeReaches.length === 0) {
+  activeReaches = Object.values(reachGrades).map(r => r.reach);
+}
 
       geoLayer.eachLayer(layer => {
         const id = layer.feature.properties.reach_id;
