@@ -171,69 +171,67 @@ L.control.layers(basemaps, null, { position: 'topleft' }).addTo(map);
     }
 
   function updateGrades() {
-  //  Fetch the latest CSV data with a timestamp to prevent caching
-  fetch(csvUrl + "?t=" + Date.now()).then(r => r.text()).then(csv => {
-    const lines = csv.trim().split("\n");
-    const headers = lines[0].split(",");
-    reachGrades = {}; // Clear previous data
-    let allReaches = new Set(); // Collect unique reach names
+  // Fetch the latest CSV data with a timestamp to prevent caching
+  fetch(csvUrl + "?t=" + Date.now())
+    .then(r => r.text())
+    .then(csv => {
+      const lines = csv.trim().split("\n");
+      const headers = lines[0].split(",");
+      reachGrades = {}; // Clear previous data
+      let allReaches = new Set(); // Collect unique reach names
 
-    //  Process each row of CSV data (excluding header)
-    for (const line of lines.slice(1)) {
-      const cols = line.split(",");
-      const reach = cols[0].trim();         // Human-readable name
-      const reach_id = cols[1].trim();      // Unique identifier
+      // Process each row of CSV data (excluding header)
+      for (const line of lines.slice(1)) {
+        const cols = line.split(",");
+        const reach = cols[0].trim();
+        const reach_id = cols[1].trim();
 
-      // Create a new record for this reach_id if it doesn't exist
-      if (!reachGrades[reach_id]) {
-        reachGrades[reach_id] = { reach };
+        if (!reachGrades[reach_id]) {
+          reachGrades[reach_id] = { reach };
+        }
+
+        // Save all parameter grades
+        for (let i = 2; i < headers.length; i++) {
+          let g = (cols[i] || "").trim().toUpperCase();
+          if (!gradeColors[g]) g = "No Data";
+          reachGrades[reach_id][headers[i]] = g;
+        }
+
+        // Determine selected column grade and color
+        const colIndex = headers.indexOf(selectedColumn);
+        let selectedGrade = (cols[colIndex] || "").trim().toUpperCase();
+        if (!gradeColors[selectedGrade]) selectedGrade = "No Data";
+        reachGrades[reach_id].color = gradeColors[selectedGrade];
+        reachGrades[reach_id].grade = selectedGrade;
+
+        allReaches.add(reach);
       }
 
-      //  Save all grades/parameters by header name
-      for (let i = 2; i < headers.length; i++) {
-        let g = (cols[i] || "").trim().toUpperCase();
-        if (!gradeColors[g]) g = "No Data"; // Normalize unexpected values
-        reachGrades[reach_id][headers[i]] = g;
-      }
+      // Refresh subwatershed checkboxes every time
+      reachCheckboxesInitialized = false;
+      setupReachCheckboxes([...allReaches]);
 
-      //  Determine selected parameter's grade and color
-      const colIndex = headers.indexOf(selectedColumn);
-      let selectedGrade = (cols[colIndex] || "").trim().toUpperCase();
-      if (!gradeColors[selectedGrade]) selectedGrade = "No Data";
-      reachGrades[reach_id].color = gradeColors[selectedGrade];
-      reachGrades[reach_id].grade = selectedGrade;
+      if (!geoLayer) return;
 
-      allReaches.add(reach);
-    }
+      const activeGrades = [...document.querySelectorAll('#gradeFilter input:checked')].map(cb => cb.value);
+      const activeReaches = [...document.querySelectorAll('#reachFilter input:checked')].map(cb => cb.value);
 
-    //  Setup subwatershed checkbox list (only once per session)
-    setupReachCheckboxes([...allReaches]);
+      geoLayer.eachLayer(layer => {
+        const id = layer.feature.properties.reach_id;
+        const record = reachGrades[id] || {};
+        const grade = record.grade;
+        const reach = record.reach;
+        const color = record.color || 'gray';
 
-    //  Stop if geoLayer hasn’t been loaded yet
-    if (!geoLayer) return;
-
-    //  Get active filter selections from checkboxes
-    const activeGrades = [...document.querySelectorAll('#gradeFilter input:checked')].map(cb => cb.value);
-    const activeReaches = [...document.querySelectorAll('#reachFilter input:checked')].map(cb => cb.value);
-
-    //  Update each feature's style and visibility based on filters
-geoLayer.eachLayer(layer => {
-  const id = layer.feature.properties.reach_id;
-  const record = reachGrades[id] || {};
-  const grade = record.grade;
-  const reach = record.reach;
-  const color = record.color || 'gray';
-
-  if (activeGrades.includes(grade) && activeReaches.includes(reach)) {
-    layer.setStyle({ color, weight: 6, opacity: 1 });
-  } else {
-    layer.setStyle({ opacity: 0 });
-  }
-});
-
-   
+        if (activeGrades.includes(grade) && activeReaches.includes(reach)) {
+          layer.setStyle({ color, weight: 6, opacity: 1 });
+        } else {
+          layer.setStyle({ opacity: 0 });
+        }
       });
+    });
 }
+
     fetch("https://calaneve.github.io/streammap/LBD_ReachCharacterization_GCSWGS84.geojson").then(res => res.json()).then(data => {
 geoLayer = L.geoJSON(data, {
   style: f => {
