@@ -70,7 +70,7 @@
   </div>
 
   <div id="reachFilter">
-    <strong>Filter by Reach:</strong><br>
+    <strong>Filter by Subwatershed:</strong><br>
     <div id="reachCheckboxes">Loading reaches...</div>
   </div>
 
@@ -170,29 +170,33 @@ L.control.layers(basemaps, null, { position: 'topleft' }).addTo(map);
       });
     }
 
-   function updateGrades() {
+  function updateGrades() {
+  //  Fetch the latest CSV data with a timestamp to prevent caching
   fetch(csvUrl + "?t=" + Date.now()).then(r => r.text()).then(csv => {
     const lines = csv.trim().split("\n");
     const headers = lines[0].split(",");
-    reachGrades = {};
-    let allReaches = new Set();
+    reachGrades = {}; // Clear previous data
+    let allReaches = new Set(); // Collect unique reach names
 
+    //  Process each row of CSV data (excluding header)
     for (const line of lines.slice(1)) {
       const cols = line.split(",");
-      const reach = cols[0].trim();
-      const reach_id = cols[1].trim();
+      const reach = cols[0].trim();         // Human-readable name
+      const reach_id = cols[1].trim();      // Unique identifier
+
+      // Create a new record for this reach_id if it doesn't exist
       if (!reachGrades[reach_id]) {
         reachGrades[reach_id] = { reach };
       }
 
-      // Save all parameters
+      //  Save all grades/parameters by header name
       for (let i = 2; i < headers.length; i++) {
         let g = (cols[i] || "").trim().toUpperCase();
-        if (!gradeColors[g]) g = "No Data";
+        if (!gradeColors[g]) g = "No Data"; // Normalize unexpected values
         reachGrades[reach_id][headers[i]] = g;
       }
 
-      // Assign color and grade based on selected column
+      //  Determine selected parameter's grade and color
       const colIndex = headers.indexOf(selectedColumn);
       let selectedGrade = (cols[colIndex] || "").trim().toUpperCase();
       if (!gradeColors[selectedGrade]) selectedGrade = "No Data";
@@ -202,27 +206,40 @@ L.control.layers(basemaps, null, { position: 'topleft' }).addTo(map);
       allReaches.add(reach);
     }
 
+    //  Setup subwatershed checkbox list (only once per session)
     setupReachCheckboxes([...allReaches]);
+
+    //  Stop if geoLayer hasn’t been loaded yet
     if (!geoLayer) return;
 
+    //  Get active filter selections from checkboxes
     const activeGrades = [...document.querySelectorAll('#gradeFilter input:checked')].map(cb => cb.value);
     const activeReaches = [...document.querySelectorAll('#reachFilter input:checked')].map(cb => cb.value);
+
+    //  Update each feature's style and visibility based on filters
     geoLayer.eachLayer(layer => {
       const id = layer.feature.properties.reach_id;
       const record = reachGrades[id] || {};
       const grade = record.grade;
       const reach = record.reach;
       const color = record.color;
+
       layer.setStyle({ color, weight: 6 });
+
+      // Show or hide the layer based on filter selections
       if (activeGrades.includes(grade) && activeReaches.includes(reach)) {
-        layer.addTo(map);
-         geoLayer.bringToFront(); // <== AND HERE
+        geoLayer.bringToFront(); // Keep visible layers on top
       } else {
         map.removeLayer(layer);
       }
     });
+
+    //  Force a full style refresh on the geoLayer using the latest data
+    geoLayer.setStyle(f => {
+      const record = reachGrades[f.properties.reach_id] || {};
+      return { color: record.color || 'gray', weight: 6 };
+    });
   });
-    
 }
     fetch("https://calaneve.github.io/streammap/LBD_ReachCharacterization_GCSWGS84.geojson").then(res => res.json()).then(data => {
 geoLayer = L.geoJSON(data, {
@@ -261,7 +278,7 @@ popupContent += `</table>`;
  geoLayer.bringToFront(); // ✅ Ensures geoLayer stays on top after it's created     
       const bounds = geoLayer.getBounds();
       if (bounds.isValid()) map.fitBounds(bounds, { padding: [20, 20] });
-      fetch(csvUrl + "?t=" + Date.now()).then(r => r.text()).then(csv => {
+      fetch(csvUrl).then(r => r.text()).then(csv => {
         const headers = csv.split("\n")[0].split(",");
         setupDropdown(headers);
         updateGrades();
@@ -315,6 +332,7 @@ document.getElementById("toggleSubwatersheds").addEventListener("change", functi
 });
 
     document.getElementById("updateButton").addEventListener("click", updateGrades);
+    
 document.getElementById("searchBox").addEventListener("input", function () {
   const query = this.value.trim().toLowerCase();
 
@@ -325,18 +343,17 @@ document.getElementById("searchBox").addEventListener("input", function () {
     const originalColor = record.color || "gray";
 
     layer.setStyle({
-      color: match ? 'blue' : originalColor,
-      weight: match ? 8 : 6
+      color: query !== "" && match ? 'blue' : originalColor,
+      weight: query !== "" && match ? 8 : 6
     });
 
-    if (match && query !== "") {
+    if (query !== "" && match) {
       layer.openTooltip();
     } else {
       layer.closeTooltip();
     }
   });
 });
-
 
   </script>
 </body>
