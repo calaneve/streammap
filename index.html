@@ -135,8 +135,14 @@ L.control.layers(basemaps, null, { position: 'topleft' }).addTo(map);
     let reachCheckboxesInitialized = false;
     let csvData = null; // <-- store globally so it's reused
 
-    // ✅ FETCH CSV DATA HERE
-fetch(csvUrl).then(r => r.text()).then(csv => {
+// ✅ FETCH CSV DATA HERE
+function fetchCsvFresh() {
+  const cacheBuster = Date.now(); // Ensures a unique URL every time
+  return fetch(`${csvUrl}&cacheBuster=${cacheBuster}`).then(r => r.text());
+}
+
+// Initial load of CSV
+fetchCsvFresh().then(csv => {
   csvData = csv;
   const headers = csv.split("\n")[0].split(",");
   setupDropdown(headers);
@@ -334,7 +340,14 @@ document.getElementById("toggleSubwatersheds").addEventListener("change", functi
   else map.removeLayer(subwatershedsLayer);
 });
 
-    document.getElementById("updateButton").addEventListener("click", updateGrades);
+document.getElementById("updateButton").addEventListener("click", () => {
+  fetchCsvFresh().then(csv => {
+    csvData = csv;
+    const headers = csv.split("\n")[0].split(",");
+    setupDropdown(headers); // Optional: Only needed if headers may change
+    updateGrades();
+  });
+});
 document.getElementById("searchBox").addEventListener("input", function () {
   const query = this.value.trim().toLowerCase();
 
