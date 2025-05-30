@@ -149,17 +149,17 @@ L.control.layers(basemaps, null, { position: 'topleft' }).addTo(map);
 });
     }
 
-function setupReachCheckboxes(reaches) {
+function setupStreamCheckboxes(streams) {
   const container = document.getElementById("reachCheckboxes");
   container.innerHTML = "";
-  reaches.sort().forEach(reach => {
+  streams.sort().forEach(stream => {
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
-    checkbox.value = reach;
+    checkbox.value = stream;
     checkbox.checked = true;
     const label = document.createElement("label");
     label.appendChild(checkbox);
-    label.append(" " + reach);
+    label.append(" " + stream);
     container.appendChild(label);
     container.appendChild(document.createElement("br"));
   });
@@ -167,6 +167,7 @@ function setupReachCheckboxes(reaches) {
     cb.addEventListener("change", () => updateGrades());
   });
 }
+
 
 
   function updateGrades() {
@@ -177,7 +178,7 @@ function setupReachCheckboxes(reaches) {
       const lines = csv.trim().split("\n");
       const headers = lines[0].split(",");
       reachGrades = {}; // Clear previous data
-      let allReaches = new Set(); // Collect unique reach names
+      let allStreams = new Set(); // Collect unique reach names
 
       // Process each row of CSV data (excluding header)
       for (const line of lines.slice(1)) {
@@ -188,6 +189,9 @@ function setupReachCheckboxes(reaches) {
         if (!reachGrades[reach_id]) {
           reachGrades[reach_id] = { reach };
         }
+        const streamIndex = headers.indexOf("stream");
+const streamName = cols[streamIndex]?.trim() || "";
+reachGrades[reach_id].stream = streamName;
 
         // Save all parameter grades
         for (let i = 2; i < headers.length; i++) {
@@ -203,19 +207,19 @@ function setupReachCheckboxes(reaches) {
         reachGrades[reach_id].color = gradeColors[selectedGrade];
         reachGrades[reach_id].grade = selectedGrade;
 
-        allReaches.add(reach);
+        allStreams.add(streamName);
       }
 
       // Refresh subwatershed checkboxes every time
       reachCheckboxesInitialized = false;
-      setupReachCheckboxes([...allReaches]);
+      setupStreamCheckboxes([...allStreams]);
 
       if (!geoLayer) return;
 
      const activeGrades = [...document.querySelectorAll('#gradeFilter input:checked')].map(cb => cb.value);
-let activeReaches = [...document.querySelectorAll('#reachFilter input:checked')].map(cb => cb.value);
-if (activeReaches.length === 0) {
-  activeReaches = Object.values(reachGrades).map(r => r.reach);
+let activeStreams = [...document.querySelectorAll('#reachFilter input:checked')].map(cb => cb.value);
+if (activeStreams.length === 0) {
+  activeStreams = Object.values(reachGrades).map(r => r.stream);
 }
 
       geoLayer.eachLayer(layer => {
@@ -225,11 +229,11 @@ if (activeReaches.length === 0) {
         const reach = record.reach;
         const color = record.color || 'gray';
 
-        if (activeGrades.includes(grade) && activeReaches.includes(reach)) {
-          layer.setStyle({ color, weight: 6, opacity: 1 });
-        } else {
-          layer.setStyle({ opacity: 0 });
-        }
+       if (activeGrades.includes(grade) && activeStreams.includes(record.stream)) {
+  layer.setStyle({ color, weight: 6, opacity: 1 });
+} else {
+  layer.setStyle({ opacity: 0 });
+}
       });
     });
 }
