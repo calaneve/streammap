@@ -302,6 +302,20 @@ function updateGrades() {
     // ✅ Trigger update once geoLayer is ready
     if (csvData) updateGrades();
   });
+    // ✅ Add CEA boundary layer
+fetch("https://calaneve.github.io/streammap/CEA_Boundary.geojson")
+  .then(res => res.json())
+  .then(data => {
+    ceaLayer = L.geoJSON(data, {
+      style: {
+        color: "purple",
+        weight: 2,
+        fillOpacity: 0
+      }
+    }).addTo(map);
+    ceaLayer.bringToFront(); // Optional
+  });
+
     
 const groupColors = {
   "Colorado River Headwaters": "#08dd6d",
