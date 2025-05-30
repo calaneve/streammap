@@ -133,21 +133,43 @@ L.control.layers(basemaps, null, { position: 'topleft' }).addTo(map);
     let reachGrades = {};
     let selectedColumn = "";
     let reachCheckboxesInitialized = false;
+    let csvData = null; // <-- store globally so it's reused
 
-    function setupDropdown(headers) {
-      const dropdown = document.getElementById("gradeColumn");
-      dropdown.innerHTML = "";
-      for (let i = 2; i < headers.length; i++) {
-        const opt = document.createElement("option");
-        opt.value = opt.textContent = headers[i];
-        dropdown.appendChild(opt);
-      }
-      selectedColumn = dropdown.value = dropdown.options[0].value;
-      dropdown.addEventListener("change", () => {
-        selectedColumn = dropdown.value;
-        updateGrades();
-      });
-    }
+    // ✅ FETCH CSV DATA HERE
+fetch(csvUrl).then(r => r.text()).then(csv => {
+  csvData = csv;
+  const headers = csv.split("\n")[0].split(",");
+  setupDropdown(headers);
+  if (geoLayer) updateGrades(); // safe to call again
+});
+    
+function setupDropdown(headers) {
+  const dropdown = document.getElementById("gradeColumn");
+
+  // Clear existing options
+  dropdown.innerHTML = "";
+
+  // Remove existing listeners (if needed)
+  const newDropdown = dropdown.cloneNode(true);
+  dropdown.parentNode.replaceChild(newDropdown, dropdown);
+
+  // Add new options
+  for (let i = 2; i < headers.length; i++) {
+    const opt = document.createElement("option");
+    opt.value = headers[i];
+    opt.textContent = headers[i];
+    newDropdown.appendChild(opt);
+  }
+
+  // Set default selection to first parameter
+  selectedColumn = newDropdown.value = newDropdown.options[0]?.value || "";
+
+  // Add change listener (now only one will exist)
+  newDropdown.addEventListener("change", () => {
+    selectedColumn = newDropdown.value;
+    updateGrades();
+  });
+}
 
     function setupReachCheckboxes(reaches) {
       if (reachCheckboxesInitialized) return;
@@ -169,113 +191,111 @@ L.control.layers(basemaps, null, { position: 'topleft' }).addTo(map);
         cb.addEventListener("change", () => updateGrades());
       });
     }
+function updateGrades() {
+  if (!csvData || !geoLayer) return; // Ensure data and layer are ready
 
-   function updateGrades() {
-  fetch(csvUrl).then(r => r.text()).then(csv => {
-    const lines = csv.trim().split("\n");
-    const headers = lines[0].split(",");
-    reachGrades = {};
-    let allReaches = new Set();
+  const lines = csvData.trim().split("\n");
+  const headers = lines[0].split(",");
+  const colIndex = headers.indexOf(selectedColumn);
 
-    for (const line of lines.slice(1)) {
-      const cols = line.split(",");
-      const reach = cols[0].trim();
-      const reach_id = cols[1].trim();
-      if (!reachGrades[reach_id]) {
-        reachGrades[reach_id] = { reach };
-      }
+  if (colIndex < 0) {
+    console.warn(`Selected column "${selectedColumn}" not found.`);
+    return;
+  }
 
-      // Save all parameters
-      for (let i = 2; i < headers.length; i++) {
-        let g = (cols[i] || "").trim().toUpperCase();
-        if (!gradeColors[g]) g = "No Data";
-        reachGrades[reach_id][headers[i]] = g;
-      }
+  reachGrades = {};
+  const allReaches = new Set();
 
-      // Assign color and grade based on selected column
-      const colIndex = headers.indexOf(selectedColumn);
-      let selectedGrade = (cols[colIndex] || "").trim().toUpperCase();
-      if (!gradeColors[selectedGrade]) selectedGrade = "No Data";
-      reachGrades[reach_id].color = gradeColors[selectedGrade];
-      reachGrades[reach_id].grade = selectedGrade;
-
-      allReaches.add(reach);
+  for (const line of lines.slice(1)) {
+    const cols = line.split(",");
+    const reach = cols[0].trim();
+    const reach_id = cols[1].trim();
+    if (!reachGrades[reach_id]) {
+      reachGrades[reach_id] = { reach };
     }
 
-    setupReachCheckboxes([...allReaches]);
-    if (!geoLayer) return;
+    // Save all parameters for use in tooltips
+    for (let i = 2; i < headers.length; i++) {
+      let g = (cols[i] || "").trim().toUpperCase();
+      if (!gradeColors[g]) g = "No Data";
+      reachGrades[reach_id][headers[i]] = g;
+    }
 
-    const activeGrades = [...document.querySelectorAll('#gradeFilter input:checked')].map(cb => cb.value);
-    const activeReaches = [...document.querySelectorAll('#reachFilter input:checked')].map(cb => cb.value);
-    geoLayer.eachLayer(layer => {
-      const id = layer.feature.properties.reach_id;
-      const record = reachGrades[id] || {};
-      const grade = record.grade;
-      const reach = record.reach;
-      const color = record.color;
-      layer.setStyle({ color, weight: 6 });
-      if (activeGrades.includes(grade) && activeReaches.includes(reach)) {
-        layer.addTo(map);
-         geoLayer.bringToFront(); // <== AND HERE
-      } else {
-        map.removeLayer(layer);
-      }
-    });
+    // Save color/grade for selected parameter
+    let selectedGrade = (cols[colIndex] || "").trim().toUpperCase();
+    if (!gradeColors[selectedGrade]) selectedGrade = "No Data";
+    reachGrades[reach_id].color = gradeColors[selectedGrade];
+    reachGrades[reach_id].grade = selectedGrade;
+
+    allReaches.add(reach);
+  }
+
+  setupReachCheckboxes([...allReaches]); // checkbox filters
+
+  const activeGrades = [...document.querySelectorAll('#gradeFilter input:checked')].map(cb => cb.value);
+  const activeReaches = [...document.querySelectorAll('#reachFilter input:checked')].map(cb => cb.value);
+
+  geoLayer.eachLayer(layer => {
+    const id = layer.feature.properties.reach_id;
+    const record = reachGrades[id] || {};
+    const grade = record.grade;
+    const reach = record.reach;
+    const color = record.color || "gray";
+
+    layer.setStyle({ color, weight: 6 });
+
+    if (activeGrades.includes(grade) && activeReaches.includes(reach)) {
+      layer.addTo(map);
+    } else {
+      map.removeLayer(layer);
+    }
   });
-    
+
+  geoLayer.bringToFront(); // keep visible
 }
-    fetch("https://calaneve.github.io/streammap/LBD_ReachCharacterization_GCSWGS84.geojson").then(res => res.json()).then(data => {
-geoLayer = L.geoJSON(data, {
-  style: f => {
-    const record = reachGrades[f.properties.reach_id] || {};
-    return { color: record.color || 'gray', weight: 6 };
-  },
-  onEachFeature: (feature, layer) => {
-layer.on("mouseover", function () {
-  const id = feature.properties.reach_id;
-  const record = reachGrades[id];
-  if (!record) return;
 
-let popupContent = `<strong>Reach ID: ${id}</strong><br><table style="border-collapse: collapse;">`;
-for (const key in record) {
-  if (key !== "reach" && key !== "color" && key !== "grade") {
-    const grade = record[key];
-    const isSelected = key === selectedColumn;
-    const keyStyled = isSelected ? `<strong style="color:blue;">${key}</strong>` : key;
-    const gradeStyled = isSelected ? `<strong style="color:blue;">${grade}</strong>` : grade;
-    popupContent += `<tr><td style="padding: 2px 6px;">${keyStyled}</td><td style="padding: 2px 6px;">=</td><td style="padding: 2px 6px;">${gradeStyled}</td></tr>`;
-  }
-}
-popupContent += `</table>`;
+  fetch("https://calaneve.github.io/streammap/LBD_ReachCharacterization_GCSWGS84.geojson")
+  .then(res => res.json())
+  .then(data => {
+    geoLayer = L.geoJSON(data, {
+      style: f => {
+        const record = reachGrades[f.properties.reach_id] || {};
+        return { color: record.color || 'gray', weight: 6 };
+      },
+      onEachFeature: (feature, layer) => {
+        layer.on("mouseover", function () {
+          const id = feature.properties.reach_id;
+          const record = reachGrades[id];
+          if (!record) return;
 
-
-  layer.bindTooltip(popupContent, { sticky: true }).openTooltip();
-});
-
-
-    layer.on("mouseout", function () {
-      layer.closeTooltip();
-    });
-  }
-}).addTo(map);
- geoLayer.bringToFront(); // ✅ Ensures geoLayer stays on top after it's created     
-      const bounds = geoLayer.getBounds();
-      if (bounds.isValid()) map.fitBounds(bounds, { padding: [20, 20] });
-      fetch(csvUrl).then(r => r.text()).then(csv => {
-        const headers = csv.split("\n")[0].split(",");
-        setupDropdown(headers);
-        updateGrades();
-        document.querySelectorAll('#gradeFilter input[type="checkbox"]').forEach(cb => {
-  cb.addEventListener('change', () => updateGrades());
+          let popupContent = `<strong>Reach ID: ${id}</strong><br><table style="border-collapse: collapse;">`;
+          for (const key in record) {
+            if (key !== "reach" && key !== "color" && key !== "grade") {
+              const grade = record[key];
+              const isSelected = key === selectedColumn;
+              const keyStyled = isSelected ? `<strong style="color:blue;">${key}</strong>` : key;
+              const gradeStyled = isSelected ? `<strong style="color:blue;">${grade}</strong>` : grade;
+              popupContent += `<tr><td style="padding: 2px 6px;">${keyStyled}</td><td style="padding: 2px 6px;">=</td><td style="padding: 2px 6px;">${gradeStyled}</td></tr>`;
+            }
+          }
+          popupContent += `</table>`;
+          layer.bindTooltip(popupContent, { sticky: true }).openTooltip();
         });
 
-      });
-    });
+        layer.on("mouseout", function () {
+          layer.closeTooltip();
+        });
+      }
+    }).addTo(map);
 
-    fetch("https://calaneve.github.io/streammap/LBD_CEA_Boundary.geojson").then(res => res.json()).then(data => {
-      ceaLayer = L.geoJSON(data, { style: { color: "purple", weight: 2, fillOpacity: 0, fill: false } }).addTo(map);
-    });
+    geoLayer.bringToFront();
 
+    const bounds = geoLayer.getBounds();
+    if (bounds.isValid()) map.fitBounds(bounds, { padding: [20, 20] });
+
+    // ✅ Trigger update once geoLayer is ready
+    if (csvData) updateGrades();
+  });
     
 const groupColors = {
   "Colorado River Headwaters": "#08dd6d",
