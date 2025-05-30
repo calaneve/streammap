@@ -88,12 +88,15 @@
   <script>
     const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vROJntSYDQdg2vU1VTlMy8E-qOsSe9wr5_JMj1n1ks2wonNsk-JippjXmzizJJ9_BfgwMzzBV0Af50h/pub?gid=61075690&single=true&output=csv";
     const geoJsonUrl = "https://calaneve.github.io/streammap/LBD_ReachCharacterization_GCSWGS84.geojson";
+    const ceaBoundaryUrl = "https://calaneve.github.io/streammap/LBD_CEA_Boundary.geojson";
+    const subwatershedsUrl = "https://calaneve.github.io/streammap/StreamGroupSubwatersheds.geojson";
     const gradeColors = { 'F': 'red', 'D': 'orange', 'C': 'yellow', 'B': 'lightgreen', 'A': 'green', 'No Data': 'gray' };
 
     let map = L.map('map').setView([40.1, -105.87], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-    let geoLayer, reachGrades = {}, selectedColumn = "";
+    let geoLayer, ceaLayer, subwatershedsLayer;
+    let reachGrades = {}, selectedColumn = "";
 
     function setupDropdown(headers) {
       const dropdown = document.getElementById("gradeColumn");
@@ -193,6 +196,46 @@
       });
     }
 
+    fetch(ceaBoundaryUrl).then(res => res.json()).then(data => {
+      ceaLayer = L.geoJSON(data, {
+        style: { color: "purple", weight: 2, fillOpacity: 0, fill: false }
+      }).addTo(map);
+    });
+
+    const groupColors = {
+      "Colorado River Headwaters": "#08dd6d",
+      "Colorado River Lower": "#ac49f9",
+      "Colorado River Mid": "#3e77b2",
+      "Colorado River Upper": "#f7a318",
+      "Fraser River Lower": "#05a16f",
+      "Fraser River Mid": "#b6e04c",
+      "Fraser River Upper": "#e7402c"
+    };
+
+    function getColor(group) {
+      return groupColors[group] || "#999999";
+    }
+
+    fetch(subwatershedsUrl).then(res => res.json()).then(data => {
+      subwatershedsLayer = L.geoJSON(data, {
+        style: f => {
+          const group = f.properties.group || "";
+          const color = getColor(group);
+          return { color, fillColor: color, weight: 1, fillOpacity: 0.2 };
+        }
+      });
+
+      if (document.getElementById("toggleSubwatersheds").checked) {
+        subwatershedsLayer.addTo(map);
+      }
+    });
+
+    document.getElementById("toggleSubwatersheds").addEventListener("change", function () {
+      if (!subwatershedsLayer) return;
+      if (this.checked) subwatershedsLayer.addTo(map);
+      else map.removeLayer(subwatershedsLayer);
+    });
+
     document.getElementById("updateButton").addEventListener("click", () => {
       updateGrades().then(() => reloadGeoLayer());
     });
@@ -210,7 +253,6 @@
       });
     });
 
-    // Initial load
     updateGrades().then(() => reloadGeoLayer());
   </script>
 </body>
