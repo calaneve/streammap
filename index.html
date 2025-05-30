@@ -33,6 +33,19 @@
     #gradeFilter { top: 150px; }
     #reachFilter { top: 330px; max-height: 300px; overflow-y: auto; }
     #layerToggle { top: 640px; }
+    #loadingIndicator {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255, 255, 255, 0.9);
+      padding: 10px 20px;
+      border: 1px solid #ccc;
+      font-family: Arial, sans-serif;
+      font-size: 16px;
+      z-index: 2000;
+      display: none;
+    }
     .legend {
       position: absolute;
       bottom: 20px;
@@ -75,6 +88,7 @@
     <label><input type="checkbox" id="toggleSubwatersheds"> Show Subwatersheds</label>
   </div>
   <div id="map"></div>
+  <div id="loadingIndicator">Loading map...</div>
   <div class="legend">
     <h4>Reach Grades</h4>
     <div><i style="background:red"></i> F – Non-Functional</div>
@@ -98,6 +112,9 @@
     let geoLayer, ceaLayer, subwatershedsLayer;
     let reachGrades = {}, selectedColumn = "";
 
+    const showLoading = () => document.getElementById("loadingIndicator").style.display = "block";
+    const hideLoading = () => document.getElementById("loadingIndicator").style.display = "none";
+
     function setupDropdown(headers) {
       const dropdown = document.getElementById("gradeColumn");
       dropdown.innerHTML = "";
@@ -106,8 +123,14 @@
         opt.value = opt.textContent = headers[i];
         dropdown.appendChild(opt);
       }
-      selectedColumn = dropdown.value = dropdown.options[0].value;
-      dropdown.addEventListener("change", () => selectedColumn = dropdown.value);
+      selectedColumn = dropdown.options[0].value;
+      dropdown.value = selectedColumn;
+      dropdown.addEventListener("change", () => {
+        selectedColumn = dropdown.value;
+        showLoading();
+        reloadGeoLayer();
+        hideLoading();
+      });
     }
 
     function setupReachCheckboxes(reaches) {
@@ -130,6 +153,9 @@
       return fetch(csvUrl).then(r => r.text()).then(csv => {
         const lines = csv.trim().split("\n");
         const headers = lines[0].split(",");
+
+        setupDropdown(headers);
+
         reachGrades = {};
         const allReaches = new Set();
 
@@ -154,7 +180,6 @@
           allReaches.add(reach);
         });
 
-        setupDropdown(headers);
         setupReachCheckboxes([...allReaches]);
       });
     }
@@ -237,7 +262,11 @@
     });
 
     document.getElementById("updateButton").addEventListener("click", () => {
-      updateGrades().then(() => reloadGeoLayer());
+      showLoading();
+      updateGrades().then(() => {
+        reloadGeoLayer();
+        hideLoading();
+      });
     });
 
     document.getElementById("searchBox").addEventListener("input", function () {
@@ -253,11 +282,14 @@
       });
     });
 
-    updateGrades().then(() => reloadGeoLayer());
+    showLoading();
+    updateGrades().then(() => {
+      reloadGeoLayer();
+      hideLoading();
+    });
   </script>
 </body>
 </html>
-
 
 
 
