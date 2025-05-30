@@ -191,10 +191,11 @@ dropdown.addEventListener("change", () => {
     }
 // Load CSV, parse grades, and update reachGrades object
    function updateGrades() {
-      // 🔽 Always get the current dropdown value, not just rely on selectedColumn
+      // Always get the current dropdown value, not just rely on selectedColumn
   selectedColumn = document.getElementById("gradeColumn").value;
      
-  fetch(csvUrl).then(r => r.text()).then(csv => {
+ fetch(csvUrl + "?t=" + Date.now()).then(r => r.text()).then(csv => {
+   console.log("CSV content:", csv.slice(0, 300));  // Debug the fetched content
     const lines = csv.trim().split("\n");
     const headers = lines[0].split(",");
     reachGrades = {};
@@ -247,7 +248,7 @@ dropdown.addEventListener("change", () => {
   });
     
 }
-    fetch(csvUrl)
+    fetch(csvUrl + "?t=" + Date.now())
       .then(r => r.text())
       .then(csv => {
         const headers = csv.split("\n")[0].split(",");
