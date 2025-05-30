@@ -318,40 +318,29 @@ document.getElementById("toggleSubwatersheds").addEventListener("change", functi
 document.getElementById("searchBox").addEventListener("input", function () {
   const query = this.value.trim().toLowerCase();
 
-// Filter reaches by Reach ID as user types in the search box
-document.getElementById("searchBox").addEventListener("input", function () {
-  const query = this.value.trim().toLowerCase();
+  geoLayer.eachLayer(layer => {
+    const id = layer.feature.properties.reach_id || "";
+    const match = id.toLowerCase().includes(query);
+    const record = reachGrades[id] || {};
+    const originalColor = record.color || "gray";
 
-// Loop through each stream reach to apply or clear search highlighting
-geoLayer.eachLayer(layer => {
-  const id = layer.feature.properties.reach_id || "";
-  const record = reachGrades[id] || {};
-  const originalColor = record.color || "gray";
-  const match = id.toLowerCase().includes(query);
+    layer.setStyle({
+      color: match ? 'blue' : originalColor,
+      weight: match ? 8 : 6
+    });
 
-  // If query is empty, reset to original color and default weight
-  // Otherwise, highlight matches in blue and bold
-  layer.setStyle({
-    color: query === "" ? originalColor : (match ? 'blue' : originalColor),
-    weight: query === "" ? 6 : (match ? 8 : 6)
+    if (match && query !== "") {
+      layer.openTooltip();
+    } else {
+      layer.closeTooltip();
+    }
   });
-
-  // Show tooltip for matches only if query isn't empty
-  if (match && query !== "") {
-    layer.openTooltip();
-  } else {
-    layer.closeTooltip();
-  }
 });
-});
-
 
 
   </script>
 </body>
 </html>
-
-
 
 
 
