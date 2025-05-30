@@ -171,7 +171,7 @@ L.control.layers(basemaps, null, { position: 'topleft' }).addTo(map);
     }
 
    function updateGrades() {
-  fetch(csvUrl).then(r => r.text()).then(csv => {
+  fetch(csvUrl + "?t=" + Date.now()).then(r => r.text()).then(csv => {
     const lines = csv.trim().split("\n");
     const headers = lines[0].split(",");
     reachGrades = {};
@@ -261,7 +261,7 @@ popupContent += `</table>`;
  geoLayer.bringToFront(); // ✅ Ensures geoLayer stays on top after it's created     
       const bounds = geoLayer.getBounds();
       if (bounds.isValid()) map.fitBounds(bounds, { padding: [20, 20] });
-      fetch(csvUrl).then(r => r.text()).then(csv => {
+      fetch(csvUrl + "?t=" + Date.now()).then(r => r.text()).then(csv => {
         const headers = csv.split("\n")[0].split(",");
         setupDropdown(headers);
         updateGrades();
