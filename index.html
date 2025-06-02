@@ -135,14 +135,8 @@ L.control.layers(basemaps, null, { position: 'topleft' }).addTo(map);
     let reachCheckboxesInitialized = false;
     let csvData = null; // <-- store globally so it's reused
 
-// ✅ FETCH CSV DATA HERE
-function fetchCsvFresh() {
-  const cacheBuster = Date.now(); // Ensures a unique URL every time
-  return fetch(`${csvUrl}&cacheBuster=${cacheBuster}`).then(r => r.text());
-}
-
-// Initial load of CSV
-fetchCsvFresh().then(csv => {
+    // ✅ FETCH CSV DATA HERE
+fetch(csvUrl).then(r => r.text()).then(csv => {
   csvData = csv;
   const headers = csv.split("\n")[0].split(",");
   setupDropdown(headers);
@@ -302,20 +296,6 @@ function updateGrades() {
     // ✅ Trigger update once geoLayer is ready
     if (csvData) updateGrades();
   });
-    // ✅ Add CEA boundary layer
-fetch("https://calaneve.github.io/streammap/CEA_Boundary.geojson")
-  .then(res => res.json())
-  .then(data => {
-    ceaLayer = L.geoJSON(data, {
-      style: {
-        color: "purple",
-        weight: 2,
-        fillOpacity: 0
-      }
-    }).addTo(map);
-    ceaLayer.bringToFront(); // Optional
-  });
-
     
 const groupColors = {
   "Colorado River Headwaters": "#08dd6d",
@@ -354,14 +334,7 @@ document.getElementById("toggleSubwatersheds").addEventListener("change", functi
   else map.removeLayer(subwatershedsLayer);
 });
 
-document.getElementById("updateButton").addEventListener("click", () => {
-  fetchCsvFresh().then(csv => {
-    csvData = csv;
-    const headers = csv.split("\n")[0].split(",");
-    setupDropdown(headers); // Optional: Only needed if headers may change
-    updateGrades();
-  });
-});
+    document.getElementById("updateButton").addEventListener("click", updateGrades);
 document.getElementById("searchBox").addEventListener("input", function () {
   const query = this.value.trim().toLowerCase();
 
@@ -387,6 +360,12 @@ document.getElementById("searchBox").addEventListener("input", function () {
   </script>
 </body>
 </html>
+
+
+
+
+
+
 
 
 
