@@ -262,9 +262,9 @@
       document.getElementById('loading').style.display = 'none';
     }
       // 2. Load and plot CSV points
-    const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vROJntSYDQdg2vU1VTlMy8E-qOsSe9wr5_JMj1n1ks2wonNsk-JippjXmzizJJ9_BfgwMzzBV0Af50h/pub?gid=2088781768&single=true&output=csv';
+    const pointcsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vROJntSYDQdg2vU1VTlMy8E-qOsSe9wr5_JMj1n1ks2wonNsk-JippjXmzizJJ9_BfgwMzzBV0Af50h/pub?gid=2088781768&single=true&output=csv';
 
-    fetch(csvUrl)
+    fetch(pointcsvUrl)
       .then(res => res.text())
       .then(csv => {
         const rows = csv.split('\n').slice(1); // skip header
