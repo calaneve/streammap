@@ -15,11 +15,11 @@
       border: 1px solid #ccc;
       font-family: sans-serif;
     }
-    #controls { top: 60px; right: 10px; width: 220px; }
+    #controls { top: 90px; right: 10px; width: 220px; }
     #legend { bottom: 10px; left: 10px; }
     #subwatershedToggle { bottom: 180px; left: 10px; }
     #subLegend { bottom: 220px; left: 10px; display: none; }
-    .search-box { top: 10px; right: 10px; }
+    .search-box { top: 30px; right: 10px; }
     .legend-color {
       display: inline-block;
       width: 16px;
@@ -71,8 +71,7 @@
     <label><input type="checkbox" class="gradeFilter" value="D" checked> D</label>
     <label><input type="checkbox" class="gradeFilter" value="F" checked> F</label>
     <label><input type="checkbox" class="gradeFilter" value="No Data" checked> No Data</label>
-    <button id="updateButton" onclick="handleUpdate()">Update Data</button><br><br>
-<label><input type="checkbox" id="toggleTempSites" checked> Temperature Sites</label>
+    <button id="updateButton" onclick="handleUpdate()">Update Data</button>
   </div>
 
   <div id="loading">Updating...</div>
@@ -241,14 +240,6 @@
       }
     });
 
-    document.getElementById('toggleTempSites').addEventListener('change', function () {
-  if (this.checked) {
-    map.addLayer(tempSiteLayer);
-  } else {
-    map.removeLayer(tempSiteLayer);
-  }
-});
-
     fetch("https://calaneve.github.io/streammap/LBD_CEA_Boundary.geojson")
       .then(res => res.json())
       .then(data => {
@@ -273,10 +264,6 @@
       //  Load and plot CSV points
   const pointCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vROJntSYDQdg2vU1VTlMy8E-qOsSe9wr5_JMj1n1ks2wonNsk-JippjXmzizJJ9_BfgwMzzBV0Af50h/pub?gid=2088781768&single=true&output=csv';
 
-let tempSiteLayer; // declare globally so toggle can access it
-
-const pointCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vROJntSYDQdg2vU1VTlMy8E-qOsSe9wr5_JMj1n1ks2wonNsk-JippjXmzizJJ9_BfgwMzzBV0Af50h/pub?gid=2088781768&single=true&output=csv';
-
 fetch(pointCsvUrl)
   .then(res => res.text())
   .then(csv => {
@@ -285,9 +272,9 @@ fetch(pointCsvUrl)
 
     rows.forEach(row => {
       const columns = row.split(',');
-      const name = columns[1]?.trim();
-      const lat = parseFloat(columns[2]);
-      const lng = parseFloat(columns[3]);
+      const name = columns[1]?.trim();   // Column 2 = Location Name
+      const lat = parseFloat(columns[2]); // Column 3 = Latitude
+      const lng = parseFloat(columns[3]); // Column 4 = Longitude
 
       if (!isNaN(lat) && !isNaN(lng)) {
         const marker = L.marker([lat, lng]).bindPopup(name);
@@ -295,12 +282,32 @@ fetch(pointCsvUrl)
       }
     });
 
-    tempSiteLayer = L.layerGroup(markers).addTo(map); // on by default
-  });
+    const tempSiteLayer = L.layerGroup(markers);
+    tempSiteLayer.addTo(map); // Optional: make visible by default
 
+    // Add to existing layer control
+    if (typeof overlayMaps === 'undefined') {
+      window.overlayMaps = { "Temperature Sites": tempSiteLayer };
+      L.control.layers(null, overlayMaps, { collapsed: false }).addTo(map);
+    } else {
+      overlayMaps["Temperature Sites"] = tempSiteLayer;
+    }
+  });
   </script>
 </body>
 </html
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
