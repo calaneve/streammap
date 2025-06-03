@@ -261,31 +261,38 @@
       await updateMap();
       document.getElementById('loading').style.display = 'none';
     }
-      // 2. Load and plot CSV points
-    const pointcsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vROJntSYDQdg2vU1VTlMy8E-qOsSe9wr5_JMj1n1ks2wonNsk-JippjXmzizJJ9_BfgwMzzBV0Af50h/pub?gid=2088781768&single=true&output=csv';
+      //  Load and plot CSV points
+  const pointCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vROJntSYDQdg2vU1VTlMy8E-qOsSe9wr5_JMj1n1ks2wonNsk-JippjXmzizJJ9_BfgwMzzBV0Af50h/pub?gid=2088781768&single=true&output=csv';
 
-    fetch(pointcsvUrl)
-      .then(res => res.text())
-      .then(csv => {
-        const rows = csv.split('\n').slice(1); // skip header
-        const markers = [];
+fetch(pointCsvUrl)
+  .then(res => res.text())
+  .then(csv => {
+    const rows = csv.split('\n').slice(1);
+    const markers = [];
 
-        rows.forEach(row => {
-          const columns = row.split(',');
-          const name = columns[1]?.trim();   // Column 2 = Location Name
-          const lat = parseFloat(columns[2]); // Column 3 = Latitude
-          const lng = parseFloat(columns[3]); // Column 4 = Longitude
+    rows.forEach(row => {
+      const columns = row.split(',');
+      const name = columns[1]?.trim();   // Column 2 = Location Name
+      const lat = parseFloat(columns[2]); // Column 3 = Latitude
+      const lng = parseFloat(columns[3]); // Column 4 = Longitude
 
-          if (!isNaN(lat) && !isNaN(lng)) {
-            const marker = L.marker([lat, lng]).bindPopup(name);
-            markers.push(marker);
-          }
-        });
+      if (!isNaN(lat) && !isNaN(lng)) {
+        const marker = L.marker([lat, lng]).bindPopup(name);
+        markers.push(marker);
+      }
+    });
 
-        const csvLayer = L.layerGroup(markers);
-        const overlays = { "Locations": csvLayer };
-        L.control.layers(null, overlays, { collapsed: false }).addTo(map);
-      });
+    const tempSiteLayer = L.layerGroup(markers);
+    tempSiteLayer.addTo(map); // Optional: make visible by default
+
+    // Add to existing layer control
+    if (typeof overlayMaps === 'undefined') {
+      window.overlayMaps = { "Temperature Sites": tempSiteLayer };
+      L.control.layers(null, overlayMaps, { collapsed: false }).addTo(map);
+    } else {
+      overlayMaps["Temperature Sites"] = tempSiteLayer;
+    }
+  });
   </script>
 </body>
 </html
