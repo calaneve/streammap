@@ -261,6 +261,31 @@
       await updateMap();
       document.getElementById('loading').style.display = 'none';
     }
+      // 2. Load and plot CSV points
+    const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vROJntSYDQdg2vU1VTlMy8E-qOsSe9wr5_JMj1n1ks2wonNsk-JippjXmzizJJ9_BfgwMzzBV0Af50h/pub?gid=2088781768&single=true&output=csv';
+
+    fetch(csvUrl)
+      .then(res => res.text())
+      .then(csv => {
+        const rows = csv.split('\n').slice(1); // skip header
+        const markers = [];
+
+        rows.forEach(row => {
+          const columns = row.split(',');
+          const name = columns[1]?.trim();   // Column 2 = Location Name
+          const lat = parseFloat(columns[2]); // Column 3 = Latitude
+          const lng = parseFloat(columns[3]); // Column 4 = Longitude
+
+          if (!isNaN(lat) && !isNaN(lng)) {
+            const marker = L.marker([lat, lng]).bindPopup(name);
+            markers.push(marker);
+          }
+        });
+
+        const csvLayer = L.layerGroup(markers);
+        const overlays = { "Locations": csvLayer };
+        L.control.layers(null, overlays, { collapsed: false }).addTo(map);
+      });
   </script>
 </body>
 </html
