@@ -132,7 +132,10 @@ const baseMaps = {
 };
 
 const overlayMaps = {}; // placeholder to be filled in your temp site code
-L.control.layers(baseMaps, overlayMaps, { collapsed: false }).addTo(map);
+L.control.layers(baseMaps, overlayMaps, {
+  collapsed: false,
+  position: 'topleft' // 👈 this moves it to the top left
+}).addTo(map);
 
     const parameterSelect = document.getElementById('parameterSelect');
     const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vROJntSYDQdg2vU1VTlMy8E-qOsSe9wr5_JMj1n1ks2wonNsk-JippjXmzizJJ9_BfgwMzzBV0Af50h/pub?gid=61075690&single=true&output=csv";
