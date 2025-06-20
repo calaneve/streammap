@@ -1,146 +1,356 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8" />
-  <title>Stream Metric Map – Per Variable</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="utf-8">
+  <title>Reach Grades Map</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
     #map { height: 100vh; }
-    #controls {
+    #controls, #legend, .search-box, #subwatershedToggle, #subLegend {
       position: absolute;
-      top: 10px;
-      right: 10px;
       z-index: 1000;
       background: white;
-      padding: 10px;
+      padding: 8px;
+      border: 1px solid #ccc;
+      font-family: sans-serif;
+    }
+    #controls { top: 120px; right: 10px; width: 220px; }
+    #legend { bottom: 10px; left: 10px; }
+    #subwatershedToggle { bottom: 180px; left: 10px; }
+    #subLegend { bottom: 220px; left: 10px; display: none; }
+    .search-box { top: 60px; right: 10px; }
+    .legend-color {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    #updateButton {
+      width: 100%;
+      background: #007bff;
+      color: white;
+      padding: 6px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: sans-serif;
+      font-size: 14px;
+      margin-top: 8px;
+    }
+    #updateButton:hover {
+      background: #0056b3;
+    }
+    #loading {
+      display: none;
+      position: absolute;
+      top: 50px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1001;
+      background: white;
+      padding: 8px;
       border: 1px solid #ccc;
       font-family: sans-serif;
     }
   </style>
 </head>
 <body>
-  <div id="controls">
-    <label for="variableFilter">Select Variable:</label>
-    <select id="variableFilter">
-      <option value="Flow Regime">Flow Regime</option>
-      <option value="Water Quality">Water Quality</option>
-      <option value="Temperature">Temperature</option>
-      <option value="Sediment">Sediment</option>
-      <option value="Riparian">Riparian</option>
-      <option value="Geomorphology">Geomorphology</option>
-      <option value="Aquatic Ecosystems">Aquatic Ecosystems</option>
-    </select>
+  <div class="search-box">
+    <input id="reachSearch" type="text" placeholder="Search Reach ID" style="width:160px; padding:4px;">
   </div>
+
+  <div id="controls">
+    <label for="parameterSelect"><strong>Select Parameter:</strong></label><br>
+    <select id="parameterSelect"></select><br><br>
+    <strong>Show Grades:</strong><br>
+    <label><input type="checkbox" class="gradeFilter" value="A" checked> A</label>
+    <label><input type="checkbox" class="gradeFilter" value="B" checked> B</label>
+    <label><input type="checkbox" class="gradeFilter" value="C" checked> C</label>
+    <label><input type="checkbox" class="gradeFilter" value="D" checked> D</label>
+    <label><input type="checkbox" class="gradeFilter" value="F" checked> F</label>
+    <label><input type="checkbox" class="gradeFilter" value="No Data" checked> No Data</label>
+    <button id="updateButton" onclick="handleUpdate()">Update Data</button>
+  </div>
+
+  <div id="loading">Updating...</div>
+
+  <div id="subwatershedToggle">
+    <label><input type="checkbox" id="toggleSubwatersheds"> Subwatersheds</label>
+  </div>
+
+  <div id="subLegend">
+    <strong>Subwatershed Groups</strong><br>
+    <div><span class="legend-color" style="background:#08dd6d;"></span> Colorado River Headwaters</div>
+    <div><span class="legend-color" style="background:#ac49f9;"></span> Colorado River Lower</div>
+    <div><span class="legend-color" style="background:#3e77b2;"></span> Colorado River Mid</div>
+    <div><span class="legend-color" style="background:#f7a318;"></span> Colorado River Upper</div>
+    <div><span class="legend-color" style="background:#05a16f;"></span> Fraser River Lower</div>
+    <div><span class="legend-color" style="background:#b6e04c;"></span> Fraser River Mid</div>
+    <div><span class="legend-color" style="background:#e7402c;"></span> Fraser River Upper</div>
+  </div>
+
+  <div id="legend">
+    <strong>Grade Legend</strong><br>
+    <div><span class="legend-color" style="background:green;"></span> A</div>
+    <div><span class="legend-color" style="background:lightgreen;"></span> B</div>
+    <div><span class="legend-color" style="background:yellow;"></span> C</div>
+    <div><span class="legend-color" style="background:orange;"></span> D</div>
+    <div><span class="legend-color" style="background:red;"></span> F</div>
+    <div><span class="legend-color" style="background:gray;"></span> No Data</div>
+  </div>
+
   <div id="map"></div>
-
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-
   <script>
-    const map = L.map('map').setView([39.9, -105.9], 10);
+// Define base layers
+const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap'
+});
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 18
+const esri = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+  attribution: '© Esri'
+});
+
+const carto = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+  attribution: '© CartoDB'
+});
+
+// Initialize map with default base layer
+const map = L.map('map', {
+  center: [40.1, -105.87],
+  zoom: 13,
+  layers: [osm]  // default base layer
+});
+
+// Prepare base and overlay maps for layer control
+const baseMaps = {
+  "OpenStreetMap": osm,
+  "Esri Satellite": esri,
+  "Carto Light": carto
+};
+
+const overlayMaps = {}; // placeholder to be filled in your temp site code
+L.control.layers(baseMaps, overlayMaps, {
+  collapsed: false,
+  position: 'topleft' // 👈 this moves it to the top left
+}).addTo(map);
+
+    const parameterSelect = document.getElementById('parameterSelect');
+    const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vROJntSYDQdg2vU1VTlMy8E-qOsSe9wr5_JMj1n1ks2wonNsk-JippjXmzizJJ9_BfgwMzzBV0Af50h/pub?gid=61075690&single=true&output=csv";
+    const geojsonUrl = "https://calaneve.github.io/streammap/LBD_ReachCharacterization_GCSWGS84.geojson";
+    const subwatershedUrl = "https://calaneve.github.io/streammap/StreamGroupSubwatersheds.geojson";
+
+    let gradeData = {}, gradeColumns = [], geojsonLayer, highlightedLayer, subwatershedLayer;
+
+    function getColor(grade) {
+      return {
+        'A': 'green', 'B': 'lightgreen', 'C': 'yellow',
+        'D': 'orange', 'F': 'red', 'No Data': 'gray', '': 'gray'
+      }[grade] || 'gray';
+    }
+
+    function getGroupColor(group) {
+      const colors = {
+        "Colorado River Headwaters": "#08dd6d",
+        "Colorado River Lower": "#ac49f9",
+        "Colorado River Mid": "#3e77b2",
+        "Colorado River Upper": "#f7a318",
+        "Fraser River Lower": "#05a16f",
+        "Fraser River Mid": "#b6e04c",
+        "Fraser River Upper": "#e7402c"
+      };
+      return colors[group] || "#aaaaaa";
+    }
+
+    async function fetchCSV() {
+      const response = await fetch(csvUrl);
+      const text = await response.text();
+      const rows = text.trim().split('\n').map(r => r.split(','));
+      const headers = rows[0].map(h => h.trim());
+      gradeColumns = headers.slice(2);
+      const data = rows.slice(1).map(row => {
+        const obj = {};
+        headers.forEach((key, i) => obj[key] = row[i]?.trim());
+        return obj;
+      });
+      data.forEach(row => gradeData[row.reach_id] = row);
+      parameterSelect.innerHTML = gradeColumns.map(col => `<option value="${col}">${col}</option>`).join('');
+    }
+
+    async function loadGeoJSON(url) {
+      const res = await fetch(url);
+      return res.json();
+    }
+
+    function getActiveGradeFilters() {
+      return Array.from(document.querySelectorAll('.gradeFilter:checked')).map(cb => cb.value);
+    }
+
+    async function updateMap() {
+      if (geojsonLayer) map.removeLayer(geojsonLayer);
+      const selectedParam = parameterSelect.value;
+      const grades = getActiveGradeFilters();
+      const geojson = await loadGeoJSON(geojsonUrl);
+
+      geojsonLayer = L.geoJSON(geojson, {
+        filter: f => grades.includes((gradeData[f.properties.reach_id]?.[selectedParam] || 'No Data').trim()),
+        style: f => ({ color: getColor((gradeData[f.properties.reach_id]?.[selectedParam] || 'No Data').trim()), weight: 6 }),
+        onEachFeature: (feature, layer) => {
+          layer.on("mouseover", () => {
+            const rec = gradeData[feature.properties.reach_id];
+            if (!rec) return;
+            let content = `<strong>Reach ID: ${feature.properties.reach_id}</strong><br><table style="border-collapse: collapse;">`;
+            for (const key in rec) {
+              if (key !== "reach" && key !== "color" && key !== "grade") {
+                const val = rec[key] || 'No Data';
+                const highlight = key === parameterSelect.value;
+                content += `<tr><td style="padding:2px 6px;">${highlight ? `<strong style='color:blue;'>${key}</strong>` : key}</td><td>=</td><td style="padding:2px 6px;">${highlight ? `<strong style='color:blue;'>${val}</strong>` : val}</td></tr>`;
+              }
+            }
+            layer.bindTooltip(content + '</table>', { sticky: true }).openTooltip();
+          });
+          layer.on("mouseout", () => layer.closeTooltip());
+        }
+      }).addTo(map);
+    }
+
+  document.getElementById('reachSearch').addEventListener('input', function () {
+    const query = this.value.trim().toLowerCase();
+    if (highlightedLayer) {
+      map.removeLayer(highlightedLayer);
+      highlightedLayer = null;
+    }
+    if (!query) return;
+
+    const matches = geojsonLayer.getLayers().filter(l =>
+      l.feature.properties.reach_id.toLowerCase().includes(query)
+    );
+
+    if (matches.length === 0) return;
+
+    const matchedFeatures = matches.map(m => m.feature);
+    highlightedLayer = L.geoJSON(matchedFeatures, {
+      style: { color: 'blue', weight: 6 },
+      onEachFeature: (feature, layer) => {
+        const rec = gradeData[feature.properties.reach_id];
+        if (!rec) return;
+        let content = `<strong>Reach ID: ${feature.properties.reach_id}</strong><br><table style="border-collapse: collapse;">`;
+        for (const key in rec) {
+          if (key !== "reach" && key !== "color" && key !== "grade") {
+            const val = rec[key] || 'No Data';
+            const highlight = key === parameterSelect.value;
+            content += `<tr><td style="padding:2px 6px;">${highlight ? `<strong style='color:blue;'>${key}</strong>` : key}</td><td>=</td><td style="padding:2px 6px;">${highlight ? `<strong style='color:blue;'>${val}</strong>` : val}</td></tr>`;
+          }
+        }
+        layer.bindTooltip(content + '</table>', { sticky: true });
+      }
     }).addTo(map);
 
-    const gradeColors = {
-      "A": "green",
-      "B": "lightgreen",
-      "C": "yellow",
-      "D": "orange",
-      "F": "red",
-      "No Data": "gray",
-      "": "gray"
-    };
+    matches.forEach(m => m.closeTooltip()); // Close existing tooltips
+    highlightedLayer.eachLayer(layer => layer.openTooltip());
+  });
 
-    let allLayers = [];
-
-    function offsetLine(coords, offset) {
-      return coords.map(([lng, lat]) => [lng + offset, lat + offset]);
-    }
-
-    function drawMetricLines(metrics, geojson, selectedVariable) {
-      allLayers.forEach(layer => map.removeLayer(layer));
-      allLayers = [];
-
-      const reachMap = {};
-      geojson.features.forEach(f => {
-        reachMap[f.properties.reach_id] = f;
-      });
-
-      metrics.forEach(row => {
-        const reachId = row.reach_id;
-        const variable = row.variable;
-
-        if (variable !== selectedVariable) return;
-
-        const metric = row.metric;
-        const grade = row.metric_grade || "No Data";
-        const color = gradeColors[grade] || "gray";
-
-        const reachFeature = reachMap[reachId];
-        if (!reachFeature) return;
-
-        const geometry = reachFeature.geometry;
-        const segments = geometry.type === "MultiLineString"
-          ? geometry.coordinates
-          : [geometry.coordinates];
-
-        const relatedMetrics = metrics.filter(r =>
-          r.reach_id === reachId && r.variable === variable
-        );
-        const metricIndex = relatedMetrics.findIndex(r => r.metric === metric);
-        const centerIndex = (relatedMetrics.length - 1) / 2;
-        const offset = (metricIndex - centerIndex) * 0.001;
-
-        let tooltip = `<strong>${reachId}</strong><br><strong>${variable}</strong><br><ul style="padding-left: 16px;">`;
-        relatedMetrics.forEach(m => {
-          const g = m.metric_grade || "No Data";
-          tooltip += `<li>${m.metric}: <strong>${g}</strong></li>`;
-        });
-        tooltip += `</ul>`;
-
-        segments.forEach(segment => {
-          const offsetCoords = offsetLine(segment, offset);
-          const latlngs = offsetCoords.map(([lng, lat]) => [lat, lng]);
-
-          const polyline = L.polyline(latlngs, {
-            color: color,
-            weight: 2.5,
-            opacity: 0.7
-          }).bindTooltip(tooltip, { sticky: true })
-            .on("mouseover", function () {
-              this.setStyle({ weight: 5, opacity: 1 });
-            })
-            .on("mouseout", function () {
-              this.setStyle({ weight: 2.5, opacity: 0.7 });
-            })
-            .addTo(map);
-
-          allLayers.push(polyline);
-        });
-      });
-
-      console.log(`✅ Drew ${allLayers.length} metric lines`);
-    }
-
-    Promise.all([
-      fetch('https://calaneve.github.io/streammap/LBD_ReachCharacterization_GCSWGS84.geojson').then(res => res.json()),
-      fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vROJntSYDQdg2vU1VTlMy8E-qOsSe9wr5_JMj1n1ks2wonNsk-JippjXmzizJJ9_BfgwMzzBV0Af50h/pub?gid=820977230&single=true&output=csv')
-        .then(res => res.text())
-        .then(csv => Papa.parse(csv, { header: true }).data)
-    ]).then(([geojson, metrics]) => {
-      const dropdown = document.getElementById('variableFilter');
-      drawMetricLines(metrics, geojson, dropdown.value);
-
-      dropdown.addEventListener('change', function () {
-        drawMetricLines(metrics, geojson, this.value);
+    fetch(subwatershedUrl).then(res => res.json()).then(data => {
+      subwatershedLayer = L.geoJSON(data, {
+        style: f => ({ color: getGroupColor(f.properties.group), weight: 2, fillOpacity: 0.2 }),
+        onEachFeature: (f, l) => l.bindPopup(`<strong>Group:</strong> ${f.properties.group}`)
       });
     });
+
+    document.getElementById('toggleSubwatersheds').addEventListener('change', function () {
+      const show = this.checked;
+      if (show) {
+        map.addLayer(subwatershedLayer);
+        document.getElementById('subLegend').style.display = 'block';
+      } else {
+        map.removeLayer(subwatershedLayer);
+        document.getElementById('subLegend').style.display = 'none';
+      }
+    });
+
+    fetch("https://calaneve.github.io/streammap/LBD_CEA_Boundary.geojson")
+      .then(res => res.json())
+      .then(data => {
+        const ceaLayer = L.geoJSON(data, {
+          style: { color: "purple", weight: 2, fill: false, fillOpacity: 0 }
+        }).addTo(map);
+        map.fitBounds(ceaLayer.getBounds());
+      });
+
+    parameterSelect.addEventListener('change', updateMap);
+    document.querySelectorAll('.gradeFilter').forEach(cb => cb.addEventListener('change', updateMap));
+    fetchCSV().then(updateMap);
+
+    async function handleUpdate() {
+      document.getElementById('loading').style.display = 'block';
+      const previousParam = parameterSelect.value;
+      await fetchCSV();
+      parameterSelect.value = previousParam;
+      await updateMap();
+      document.getElementById('loading').style.display = 'none';
+    }
+      //  Load and plot CSV points
+  const pointCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vROJntSYDQdg2vU1VTlMy8E-qOsSe9wr5_JMj1n1ks2wonNsk-JippjXmzizJJ9_BfgwMzzBV0Af50h/pub?gid=2088781768&single=true&output=csv';
+
+fetch(pointCsvUrl)
+  .then(res => res.text())
+  .then(csv => {
+    const rows = csv.split('\n').slice(1);
+    const markers = [];
+
+    rows.forEach(row => {
+      const columns = row.split(',');
+      const name = columns[1]?.trim();   // Column 2 = Location Name
+      const lat = parseFloat(columns[2]); // Column 3 = Latitude
+      const lng = parseFloat(columns[3]); // Column 4 = Longitude
+
+      if (!isNaN(lat) && !isNaN(lng)) {
+        const marker = L.marker([lat, lng]).bindPopup(name);
+        markers.push(marker);
+      }
+    });
+
+    const tempSiteLayer = L.layerGroup(markers);
+    // tempSiteLayer.addTo(map); // Optional: make visible by default
+
+    // Add to existing layer control
+    if (typeof overlayMaps === 'undefined') {
+      window.overlayMaps = { "Temperature Sites": tempSiteLayer };
+      L.control.layers(null, overlayMaps, { collapsed: false }).addTo(map);
+    } else {
+      overlayMaps["Temperature Sites"] = tempSiteLayer;
+    }
+  });
   </script>
 </body>
-</html>
+</html
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
